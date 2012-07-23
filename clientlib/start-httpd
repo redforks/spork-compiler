@@ -1,0 +1,1 @@
+/usr/sbin/thttpd -D -p 8080 -d /home/forks/lib/sf -l /dev/stdout -T UTF-8

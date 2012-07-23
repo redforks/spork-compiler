@@ -1,0 +1,378 @@
+/* reset css */
+html {margin:0;padding:0;border:0;height:100%}
+body, div, span, object, iframe, h1, h2, h3, h4, h5, h6, p,
+blockquote, pre, a, abbr, acronym, address, big, cite, code,
+del, dfn, em, img, ins, kbd, q, s, samp,
+small, strike, strong, sub, sup, tt, var,
+b, u, i, center,
+dl, dt, dd, ol, ul, li,
+fieldset, form, label, legend,
+table, caption, tbody, tfoot, thead, tr, th, td,
+article, aside, canvas, details, embed,
+figure, figcaption, footer, header, hgroup,
+menu, nav, output, ruby, section, summary,
+time, mark, audio, video {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    font-size: 100%;
+    font: inherit;
+    vertical-align: baseline;
+}
+
+* {
+	-webkit-box-sizing: border-box;
+	-moz-box-sizing: border-box;
+	box-sizing: border-box;
+}
+
+body {
+    font-family:"Helvetica Neue", Arial, Helvetica, sans-serif;
+    line-height: 1.1;
+    background: white;
+		height: 100%;
+}
+
+input[type='text'], input[type='password'] {
+    font-size: 16px
+}
+
+ol, ul { list-style: none;}
+blockquote, q { quotes : none; }
+blockquote:before, blockquote:after, q:before, q:after {
+    content: ''; content: None;
+}
+table, th, td {vertical-align:middle;}
+table { border-collapse:collapse; border-spacing: 0;}
+/* end css reset */
+
+h1 {
+	font-size: 150%
+}
+
+.tabpanel > :first-child > li {background-color: #cccbca; cursor: default;display:inline-block; padding:4px;}
+.tabpanel > :first-child > .selected {background-color: #e5e4e3;}
+.tabpanel > :last-child {padding: 4px}
+
+a.hyperlink { color: #00c; text-decoration: underline; cursor: pointer;}
+a.hyperlink:visited {color: #00c;}
+a.disabled {color: gray; cursor: default;}
+
+.datepicker {
+    border: 1px solid #b5ccf1;
+    border-collapse: collapse;
+    text-align: center;
+    background-color: white;
+}
+
+.datepicker > thead { background-color: #c3d9ff;}
+.datepicker > thead > tr:first-of-type {color: blue;}
+.datepicker-header-btn {cursor: pointer;}
+.datepicker > tbody { cursor: pointer; }
+.datepicker > tbody td {padding: 4px;}
+.datepicker > tbody td:nth-child(n+6) {background-color: #eee}
+.datepicker > tbody td.selected {background-color: #ace}
+.datepicker > tbody td:hover {background-color: #f0e68c}
+.datepicker-gray {color: #a99991}
+
+.formbox-label:after {
+    content: ':';
+}
+
+.popuppanel {
+    top: 0px;
+    left: 0px;
+    z-index: 100;
+    position: absolute;
+    display: none;
+    background-color: white;
+}
+
+.vbox-slot, .hbox-slot {
+    -webkit-box-flex: 0;
+    -moz-box-flex: 0;
+    box-flex: 0;
+
+    display: -webkit-box;
+    display: -moz-box;
+    display: box;
+}
+
+.vbox-slot {
+    -webkit-box-orient: horizontal;
+    -moz-box-orient: horizontal;
+    box-orient: horizontal;
+}
+
+.hbox-slot {
+    -webkit-box-orient: vertical;
+    -moz-box-orient: vertical;
+    box-orient: vertical;
+}
+
+.vbox-slot > *, .hbox-slot > * {
+	margin: 4px;
+}
+
+.vbox-slot > *:not(div), .hbox-slot > *:not(div) {
+	display: block;
+}
+
+.vbox {
+    margin: 0;
+
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-box-align: stretch;
+
+    display: -moz-box;
+    -moz-box-orient: vertical;
+    -moz-box-align: stretch;
+
+    display: box;
+    box-orient: vertical;
+    box-align: stretch;
+}
+
+.hbox, .viewflipper {
+    margin: 0;
+
+    display: -webkit-box;
+    -webkit-box-orient: horizontal;
+    -webkit-box-align: stretch;
+
+    display: -moz-box;
+    -moz-box-orient: horizontal;
+    -moz-box-align: stretch;
+
+    display: box;
+    box-orient: horizontal;
+    box-align: stretch;
+}
+
+.datagrid > thead {
+    background-color: #FAFAFA;
+}
+
+.datagrid > thead th {
+    border-right: 1px solid #DDD;
+    border-left: 1px solid #white;
+    padding: 2px;
+}
+
+.datagrid > tbody td {
+    border-right: 1px solid #DDD;
+    border-left: 1px solid #white;
+}
+
+.datagrid > tbody > tr:nth-child(even) {
+    background-color: #F7F7F7
+}
+
+.datagrid > tbody > tr:hover {
+    background-color: #9FF
+}
+
+.datebox {
+    width: 100px;
+    font-family: monospace;
+}
+
+table.grid-line, table.grid-line td {
+    border: 1px solid black;
+}
+
+label {white-space: nowrap;}
+
+.scrollview {
+    overflow: auto
+}
+
+.tabwidget {
+    position: relative;
+    background: #5C9CCC;
+    border-collapse: seperate;
+    border-left-color: #4297D7;
+    border-left-style: solid;
+    border-left-width: 1px;
+    border-right-color: #4297D7;
+    border-right-style: solid;
+    border-right-width: 1px;
+    border-top-color: #4297D7;
+    border-top-left-radius: 5px;
+    border-top-right-radius: 5px;
+    border-top-style: solid;
+    border-top-width: 1px;
+    border-bottom-color: #4297D7;
+    border-bottom-left-radius: 5px;
+    border-bottom-right-radius: 5px;
+    border-bottom-style: solid;
+    border-bottom-width: 1px;
+    margin-bottom: 0px;
+    margin-left: 0px;
+    margin-right: 0px;
+    margin-top: 0px;
+    outline-color: white;
+    outline-style: none;
+    outline-width: 0px;
+    padding-bottom: 0px;
+    padding-left: 2px;
+    padding-right: 2px;
+    padding-top: 2px;
+}
+
+.tabwidget > .hbox-slot {
+    background-clip: border-box;
+    background-color: #F5F8F9;
+    background-origin: padding-box;
+    border-bottom-color: #E17009;
+    border-bottom-left-radius: 0px;
+    border-bottom-right-radius: 0px;
+    border-bottom-style: none;
+    border-bottom-width: 0px;
+    border-collapse: separate;
+    border-left-color: #79B7E7;
+    border-left-style: solid;
+    border-left-width: 1px;
+    border-right-color: #79B7E7;
+    border-right-style: solid;
+    border-right-width: 1px;
+    border-top-color: #79B7E7;
+    border-top-left-radius: 5px;
+    border-top-right-radius: 5px;
+    border-top-style: solid;
+    border-top-width: 1px;
+    color: #2E6E9E;
+    display: list-item;
+    font-weight: bold;
+    height: 24px;
+    line-height: 14px;
+    list-style-image: none;
+    list-style-position: outside;
+    list-style-type: none;
+    margin-bottom: 0px;
+    margin-left: 0px;
+    margin-right: 2px;
+    margin-top: 0px;
+    outline-color: #E17009;
+    outline-style: none;
+    outline-width: 0px;
+    padding-bottom: 1px;
+    padding-left: 0px;
+    padding-right: 0px;
+    padding-top: 0px;
+    position: relative;
+    text-decoration: none;
+    top: 1px;
+    white-space: nowrap;
+}
+
+.tabwidget > :not(.selected):hover {
+    background-color: #D0E0F5;
+}
+
+.tabwidget > .selected {
+    color: #E17009;
+}
+
+.spin {
+    z-index: 1000;
+    position: absolute;
+		top: 0;
+		left: 0;
+    -moz-box-pack: center;
+    -moz-box-align: center;
+    -webkit-box-pack: center;
+    -webkit-box-align: center;
+    box-pack: center;
+    box-align: center;
+		width: 100%;
+		height: 100%;
+}
+
+.spin > div {
+    background-image: url(images/spin.gif);
+		background-position:center;
+		background-repeat:no-repeat;
+		width: 100%;
+		height: 100%;
+		display: none;
+}
+
+.treeview {
+	display: block;
+}
+
+.treeitem {
+	background-image: url(images/tree-icons.png);
+	background-repeat: repeat-y;
+	background-position: -90px 0px;
+	display: block;
+	margin-left: 18px;
+	white-space: nowrap;
+}
+
+.treeitem_icon_base {
+	background-image: url(images/tree-icons.png);
+	background-repeat: no-repeat;
+	width: 18px;
+	height: 18px;
+	display: inline-block;
+}
+
+.treeitem_icon_open {
+	background-position: -72px 0px;
+}
+
+.treeitem_icon_closed {
+	background-position: -54px 0px;
+}
+
+.treeitem_icon_leaf {
+	background-position: -36px 0px;
+}
+
+.treeview > li {
+	margin-left: 0px;
+}
+
+.treeview li:last-child {
+	background: transparent;
+}
+
+.treeview span:hover {
+	background:#e7f4f9;
+	border:1px solid #d8f0fa;
+	padding:0 2px 0 1px;
+}
+
+.treeview .selected {
+	background: #BEEBFF;
+	border: 1px solid #99DEFD;
+	padding: 0 2px 0 1px;
+}
+
+.textview-break-all {
+    word-break:break-all;
+}
+
+.action_bar {
+    background-color: #05B8E2;
+    border-top: 1px solid #05BDE9;
+    border-bottom: 1px solid #07ACD0;
+    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.1);
+    border: 1px solid #AAA;
+    color: #222;
+    font-weight: bold;
+    -moz-border-radius: 4px;
+    -webkit-border-radius: 4px;
+}
+
+.action_bar button {
+    border: 1px solid lightGrey;
+    background: #E6E6E6 url(images/ui-bg_glass_75_e6e6e6_1x400.png) 50% 50% repeat-x;
+    font-weight: normal;
+    color: #555;
+    -moz-border-radius: 4px;
+    -webkit-border-radius: 4px;
+}

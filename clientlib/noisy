@@ -1,0 +1,10 @@
+#if ! pgrep opera; then
+#  opera &
+#fi
+
+#../bin/noisy.py './setup.py build && opera -activetab' file:///home/forks/work/python/sf/build/lib/sftest/sf/index.html?$1
+#../bin/noisy.py './setup.py install && chromium' http://localhost:8080/sftest/all.html?$1 "&& musca -c 'focus right' &> /dev/null"
+../bin/browserd.py &
+sleep 3;
+../bin/browser.py go http://127.0.0.1:8080/sftest/showcase/
+exec ../bin/noisy.py ./setup.py install \&\&sleep 1\&\& ../bin/browser.py refresh -d 'src sftest' -e '.py .js .css .html'

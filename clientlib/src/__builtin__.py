@@ -224,8 +224,11 @@ def _add_loaded_module(module_name, module_obj):
             'module ' + module_name + ' is already loaded' 
     _loaded_modules[module_name] = module_obj
 
+def _module_loaded(module_name):
+    return module_name in _loaded_modules
+
 def import_(module_name):
-    if module_name in _loaded_modules:
+    if _module_loaded(module_name):
         return _loaded_modules[module_name]
 
     f = module_name.py_replace('.', '/') + '.js'

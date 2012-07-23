@@ -13,6 +13,7 @@ from spork.io import IOUtil
 import spork.virtual_fs as vir_fs
 
 module_prefix = "var _$_import;" \
+    "if(__builtin__._module_loaded('%(m)s')){return;}"\
     "var $m=new __builtin__.module('%(m)s','%(f)s.py');"
 
 class JSCompilerTestBase(spork.test.TestBase):
@@ -192,10 +193,11 @@ class JSCompilerTest(JSCompilerTestBase):
 
     def test_package_var(self):
         self.do_test("var _$_import;"
-                "var $m=new __builtin__.module('sf.test','sf/test.py');"
-                "__builtin__.import_('sf').test=$m;"
-                '$m.a;',
-                'a', module='sf.test')
+            "if(__builtin__._module_loaded('sf.test')){return;}"
+            "var $m=new __builtin__.module('sf.test','sf/test.py');"
+            "__builtin__.import_('sf').test=$m;"
+            '$m.a;',
+            'a', module='sf.test')
 
     def test_format_op(self):
         t = self.t
@@ -1350,9 +1352,11 @@ def f():
             expected = '(function(){var _$_import;' + expected
             assert back.startswith(expected), back
 
-        do_test("var $m=new __builtin__.module('a.b','a/b.py');"
+        do_test("if(__builtin__._module_loaded('a.b')){return;}"
+                "var $m=new __builtin__.module('a.b','a/b.py');"
                 "__builtin__.import_('a').b=$m;", 'a.b')
-        do_test("var $m=new __builtin__.module('a.b.c','a/b/c.py');"
+        do_test("if(__builtin__._module_loaded('a.b.c')){return;}"
+                "var $m=new __builtin__.module('a.b.c','a/b/c.py');"
                 "__builtin__.import_('a');"
                 "__builtin__.import_('a.b').c=$m;",
                 'a.b.c')
@@ -1537,20 +1541,23 @@ def f():
 
     def test_emb_py_src(self):
         self.do_test("var _$_import;"
+                "if(__builtin__._module_loaded('t.a')){return;}"
                 "var $m=new __builtin__.module('t.a','t/a.py');"
                 "__builtin__.import_('t').a=$m;",
                 'pass', module='t.a')
 
         self.do_test("var _$_import;"
+                "if(__builtin__._module_loaded('t')){return;}"
                 "var $m=new __builtin__.module('t','t.py');"
                 "$m.__src__='pass'.splitlines();",
                 'pass', embsrc=True) 
 
     def test_src_map(self):
         self.do_test("  var _$_import;\n"
+            "  if (__builtin__._module_loaded('t')) {\n    return;\n  }\n"
             "  var $m = new __builtin__.module('t', 't.py');\n"
             '  $m.a = 1;\n'
-            "  $m.__srcmap__ = [-1,-1,-1,-1,1,-1];\n", 'a=1',
+            "  $m.__srcmap__ = [-1,-1,-1,-1,-1,-1,-1,1,-1];\n", 'a=1',
             debug=True, embsrc=False, pretty=True, srcmap=True)
 
         code = r'''from __spork__ import JS
@@ -1560,12 +1567,13 @@ line 3;
 """)
 3;'''
         self.do_test("  var _$_import;\n"
+            "  if (__builtin__._module_loaded('t')) {\n    return;\n  }\n"
             "  var $m = new __builtin__.module('t', 't.py');\n"
             '  line 2;\n'
             "  '\\n'\n"
             '  line 3;\n'
             '  3;\n'
-            "  $m.__srcmap__ = [-1,-1,-1,-1,2,3,4,6,-1];\n", code,
+            "  $m.__srcmap__ = [-1,-1,-1,-1,-1,-1,-1,2,3,4,6,-1];\n", code,
             debug=True, embsrc=False, pretty=True, srcmap=True)
 
     def test_builtin_module(self):

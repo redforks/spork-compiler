@@ -649,6 +649,8 @@ class AstVisitor(object):
                 j.Attribute(MODULE_VAR_id, '__file__'), 
                 j.Str(get_module_filename(m, '.py'))))
         else:
+            is_load = j.Call(j.Attribute(_sf, '_module_loaded'), (j.Str(m),))
+            stats.append(j.If(is_load, (j.Return(None),), None))
             module_obj = j.New_object(j.Attribute(_sf, 'module'), (j.Str(m),
                 j.Str(get_module_filename(m, '.py'))))
             stats.append(j.Declare_var_stat(MODULE_VAR, module_obj))

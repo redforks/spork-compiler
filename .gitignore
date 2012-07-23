@@ -1,0 +1,31 @@
+syntax: glob
+
+*.py?
+.coverage
+.ropeproject
+build
+sf/release
+
+#core.min.js is generate from core.js
+sf/src/core.min.js
+
+dist
+doc/_build
+*.swp
+sf/jslib
+*.cover
+*~
+virtualenv
+trac
+
+# generate by os X
+.AppleDouble
+
+# temp ignored files
+_core.js
+pyjstest.py
+t.html
+t.js
+t.py
+*.egg-info
+chromedriver.log

@@ -85,14 +85,20 @@ def execute(*commandline, **kargs):
 
 def build():
     def build_project(p):
+        build_dir = join_debug('build')
+        lib_dir = join_debug(os.path.expanduser('~/lib/sf'))
         path = config.projects[p]
-        cmd_args = [os.path.join(path, 'setup.py'), 'install', '--install-lib']
-        cmd_args.append('build/debug' if args.debug else 'build/release')
-        if args.debug:
-            cmd_args.append('-O2')
-        cmd_args.extend(['install_data', '--install-dir'])
-        cmd_args.append('build/debug' if args.debug else 'build/release')
-        cmd_args.extend(['gen_home_pages', '--lib-dir', '~/lib/sf'])
+
+        cmd_args = [
+            os.path.join(path, 'setup.py'), 'install', '--install-lib',
+            lib_dir,
+            'install_data', '--install-dir', build_dir, 'gen_home_pages',
+            '--lib-dir', lib_dir
+        ]
+        if not args.debug:
+            cmd_args.insert(2, '-O2')
+            cmd_args[5:0] = ['build_py', '-O2']
+
         return execute(*cmd_args, cwd=path)
 
     for p in args.projects:
@@ -110,9 +116,14 @@ def rm_dir(path):
     if not args.dry_run:
         shutil.rmtree(path)
 
+def join_debug(path):
+    p = 'debug' if args.debug else 'release'
+
+    return os.path.join(path, p)
+
 def clean():
     def clean_dir(d):
-        d = os.path.join(d, 'debug' if args.debug else 'release')
+        d = join_debug(d)
         for child in os.listdir(d):
             full_path = os.path.join(d, child)
             if os.path.isdir(full_path):

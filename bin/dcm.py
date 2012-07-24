@@ -4,9 +4,6 @@ from configparser import ConfigParser
 from collections import OrderedDict
 import argparse, os.path, itertools, subprocess, re, sys, shutil
 
-DEBUG = 'Debug'
-RELEASE = 'Release'
-
 def parse_args():
     abspath = os.path.abspath
     global_options = argparse.ArgumentParser(add_help=False)
@@ -16,10 +13,10 @@ def parse_args():
     add_argument('-n', '--dry-run', action='store_true',
             help='Print the commands that would be executed, '
             'but do not execute them.')
+    add_argument('-r', '--release', action='store_false', dest='debug')
 
     parser = argparse.ArgumentParser(description='dcm command line tools.'
             'Note: --dry-run switch implies --verbose')
-    parser.set_defaults(configuration=DEBUG, dry_run=False)
     add_argument = parser.add_argument
     add_argument('--version', action='version', version='%(prog)s 0.1')
     subparsers = parser.add_subparsers(help='<cmd> -h for help',
@@ -28,8 +25,6 @@ def parse_args():
     action = subparsers.add_parser('build', help='pack wpf plugin file',
             parents=[global_options])
     add_argument = action.add_argument
-    add_argument('-r', '--release', action='store_const', const=RELEASE,
-      default=DEBUG, dest='configuration')
     add_argument('projects', nargs='*')
 
     action = subparsers.add_parser('add', help='Add a project to dcm',
@@ -42,8 +37,6 @@ def parse_args():
         help='Clean project or lib directory', parents=[global_options])
     add_argument = action.add_argument
     add_argument('projects', nargs='*')
-    add_argument('-r', '--release', action='store_const', const=RELEASE,
-      default=DEBUG, dest='configuration')
     add_argument('--lib', help='clean lib directory ~/lib/sf/[debug|release]',
             action='store_true')
 
@@ -94,13 +87,11 @@ def build():
     def build_project(p):
         path = config.projects[p]
         cmd_args = [os.path.join(path, 'setup.py'), 'install', '--install-lib']
-        cmd_args.append('build/debug' if args.configuration == DEBUG else
-                'build/release')
-        if args.configuration != DEBUG:
+        cmd_args.append('build/debug' if args.debug else 'build/release')
+        if args.debug:
             cmd_args.append('-O2')
         cmd_args.extend(['install_data', '--install-dir'])
-        cmd_args.append('build/debug' if args.configuration == DEBUG else
-                'build/release')
+        cmd_args.append('build/debug' if args.debug else 'build/release')
         cmd_args.extend(['gen_home_pages', '--lib-dir', '~/lib/sf'])
         return execute(*cmd_args, cwd=path)
 
@@ -121,6 +112,7 @@ def rm_dir(path):
 
 def clean():
     def clean_dir(d):
+        d = os.path.join(d, 'debug' if args.debug else 'release')
         for child in os.listdir(d):
             full_path = os.path.join(d, child)
             if os.path.isdir(full_path):
@@ -130,14 +122,10 @@ def clean():
 
     if args.lib:
         path = os.path.expanduser('~/lib/sf')
-        path = os.path.join(path, 'debug' if args.configuration == DEBUG else
-                'release')
         clean_dir(path)
 
     for p in args.projects:
         path = os.path.join(config.projects[p], 'build')
-        path = os.path.join(path, 'debug' if args.configuration == DEBUG else
-                'release')
         clean_dir(path)
 
 SECTION_PROJECTS = 'projects'

@@ -94,6 +94,7 @@ def build():
             lib_dir, 'build_py', '--build-lib', build_dir,
             'install_data', '--install-dir', build_dir,
             'gen_home_pages', '--lib-dir', lib_dir, '--build-lib', build_dir,
+            'install_lib', '--build-dir', build_dir,
         ]
         if not args.debug:
             cmd_args.insert(2, '-O2')
@@ -124,12 +125,13 @@ def join_debug(path):
 def clean():
     def clean_dir(d):
         d = join_debug(d)
-        for child in os.listdir(d):
-            full_path = os.path.join(d, child)
-            if os.path.isdir(full_path):
-                rm_dir(full_path)
-            else:
-                rm_file(full_path)
+        if os.path.exists(d):
+            for child in os.listdir(d):
+                full_path = os.path.join(d, child)
+                if os.path.isdir(full_path):
+                    rm_dir(full_path)
+                else:
+                    rm_file(full_path)
 
     if args.lib:
         clean_dir(config.lib_dir)

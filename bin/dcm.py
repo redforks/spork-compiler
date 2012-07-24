@@ -86,7 +86,7 @@ def execute(*commandline, **kargs):
 def build():
     def build_project(p):
         build_dir = join_debug('build')
-        lib_dir = join_debug(os.path.expanduser('~/lib/sf'))
+        lib_dir = join_debug(config.lib_dir)
         path = config.projects[p]
 
         cmd_args = [
@@ -132,8 +132,7 @@ def clean():
                 rm_file(full_path)
 
     if args.lib:
-        path = os.path.expanduser('~/lib/sf')
-        clean_dir(path)
+        clean_dir(config.lib_dir)
 
     for p in args.projects:
         path = os.path.join(config.projects[p], 'build')
@@ -148,6 +147,10 @@ class Config(object):
     @property
     def config_filepath(self):
         return os.path.expanduser('~/.dcm')
+
+    @property
+    def lib_dir(self):
+        return os.path.expanduser('~/lib/sf')
 
     def write(self):
         parser = ConfigParser()

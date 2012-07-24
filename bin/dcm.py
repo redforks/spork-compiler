@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 from configparser import ConfigParser
 from collections import OrderedDict
-import argparse, os.path, itertools, subprocess, re, sys
+import argparse, os.path, itertools, subprocess, re, sys, shutil
 
 DEBUG = 'Debug'
 RELEASE = 'Release'
@@ -37,6 +37,15 @@ def parse_args():
     add_argument = action.add_argument
     add_argument('name')
     add_argument('path', help='Path to your project', type=abspath)
+
+    action = subparsers.add_parser('clean',
+        help='Clean project or lib directory', parents=[global_options])
+    add_argument = action.add_argument
+    add_argument('projects', nargs='*')
+    add_argument('-r', '--release', action='store_const', const=RELEASE,
+      default=DEBUG, dest='configuration')
+    add_argument('--lib', help='clean lib directory ~/lib/sf/[debug|release]',
+            action='store_true')
 
     return parser.parse_args()
 
@@ -98,6 +107,39 @@ def build():
     for p in args.projects:
         check_action_result(build_project(p))
 
+def rm_file(path):
+    if args.verbose:
+        print('rm file', path)
+    if not args.dry_run:
+        os.remove(path)
+
+def rm_dir(path):
+    if args.verbose:
+        print('rm dir', path)
+    if not args.dry_run:
+        shutil.rmtree(path)
+
+def clean():
+    def clean_dir(d):
+        for child in os.listdir(d):
+            full_path = os.path.join(d, child)
+            if os.path.isdir(full_path):
+                rm_dir(full_path)
+            else:
+                rm_file(full_path)
+
+    if args.lib:
+        path = os.path.expanduser('~/lib/sf')
+        path = os.path.join(path, 'debug' if args.configuration == DEBUG else
+                'release')
+        clean_dir(path)
+
+    for p in args.projects:
+        path = os.path.join(config.projects[p], 'build')
+        path = os.path.join(path, 'debug' if args.configuration == DEBUG else
+                'release')
+        clean_dir(path)
+
 SECTION_PROJECTS = 'projects'
 class Config(object):
     def __init__(self):
@@ -138,7 +180,7 @@ def add():
 
 def main():
     if args.dry_run:
-        args.version = True
+        args.verbose = True
 
     try:
         check_action(globals()[args.action])

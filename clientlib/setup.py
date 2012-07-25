@@ -17,6 +17,5 @@ setup(
             'sftest': ['*.html']
         },
         data_files=[
-            ('images', glob('src/images/*'))
         ]
     )

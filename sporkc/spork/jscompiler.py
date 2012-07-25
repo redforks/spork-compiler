@@ -1947,3 +1947,6 @@ setup = partial(setup, cmdclass={
     'gen_home_pages': _gen_home_pages_cmd,
 })
 
+import sys
+sys.dont_write_bytecode = True
+del sys

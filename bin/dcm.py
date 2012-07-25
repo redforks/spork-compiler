@@ -98,13 +98,15 @@ def build():
         cmd_args = [
             os.path.join(path, 'setup.py'), 'install', '--install-lib',
             lib_dir, 'build_py', '--build-lib', build_dir,
-            'install_data', '--install-dir', build_dir,
+            'install_data', '--install-dir', lib_dir,
             'gen_home_pages', '--lib-dir', lib_dir, '--build-lib', build_dir,
             'install_lib', '--build-dir', build_dir,
         ]
         if not args.debug:
             cmd_args.insert(2, '-O2')
             cmd_args.insert(6, '-O2')
+        if args.verbose:
+            cmd_args.insert(1, '-v')
 
         spork_path = os.path.join(get_exe_path(), '../sporkc')
         return execute(*cmd_args, cwd=path, env={'PYTHONPATH': spork_path})

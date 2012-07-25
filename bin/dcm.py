@@ -83,6 +83,12 @@ def execute(*commandline, **kargs):
     else:
         return 0
 
+def get_exe_path():
+    result = sys.argv[0]
+    if os.path.islink(result):
+        result = os.path.realpath(result)
+    return os.path.dirname(result)
+
 def build():
     def build_project(p):
         build_dir = join_debug('build')
@@ -100,7 +106,8 @@ def build():
             cmd_args.insert(2, '-O2')
             cmd_args.insert(6, '-O2')
 
-        return execute(*cmd_args, cwd=path)
+        spork_path = os.path.join(get_exe_path(), '../sporkc')
+        return execute(*cmd_args, cwd=path, env={'PYTHONPATH': spork_path})
 
     for p in args.projects:
         check_action_result(build_project(p))

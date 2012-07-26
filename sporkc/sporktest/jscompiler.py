@@ -6,7 +6,7 @@ from re import search
 from ConfigParser import SafeConfigParser
 from functional import partial
 
-import spork.test
+import spork.test, sporktest
 from spork import SporkError
 from spork.jscompiler import compile, get_module_filename
 from spork.io import IOUtil
@@ -16,9 +16,10 @@ module_prefix = "var _$_import;" \
     "if(__builtin__._module_loaded('%(m)s')){return;}"\
     "var $m=new __builtin__.module('%(m)s','%(f)s.py');"
 
-class JSCompilerTestBase(spork.test.TestBase):
+class JSCompilerTestBase(sporktest.MyTestCase):
     def setUp(self):
         super(JSCompilerTestBase, self).setUp()
+        self.maxDiff = None
         vir_fs.hack()
         os.mkdir('/out')
 

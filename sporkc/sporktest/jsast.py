@@ -5,6 +5,7 @@ from StringIO import StringIO
 from unittest import TestCase
 from functional import compose
 
+import sporktest
 import spork._jsast as j
 from spork._jsvisitors import Render, DebugRender
 from spork.collections import eat
@@ -110,7 +111,7 @@ class AstFieldsTest(TestCase):
         f = j.File([node, assign])
         self.assertEqual([f, node, assign, node, node], list(j.walk(f)))
 
-class RenderTestBase(TestCase):
+class RenderTestBase(sporktest.MyTestCase):
     def t(self, expected, ast, rendercls):
         output = StringIO()
         r = rendercls(output)

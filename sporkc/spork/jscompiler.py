@@ -370,37 +370,6 @@ def _force_bool(expr):
         return expr
     return _do_force_bool(expr)
 
-def _logic_and_or(left, right, condition_op, js_logic_op):
-    def gen_helper(left, right):
-        declare_first_var = j.Declare_var_stat('first', left)
-        first_var = id('first')
-
-        bool_first = first_var if _is_compatible_bool(left)\
-                else _do_force_bool(first_var)
-        result = condition_op(bool_first, right, first_var)
-
-        no_args = ()
-        stats = (
-            declare_first_var,
-            j.Return(result)
-        )
-        return j.FunctionDef(no_args, stats)
-
-    if _is_compatible_bool(left):
-        return js_logic_op(left, right)
-
-    helper_func = gen_helper(left, right)
-    return j.Call(helper_func, [])
-
-def _logic_and(left, right):
-    op = j.Conditional_op
-    return _logic_and_or(left, right, op, j.Logic_and)
-
-def _logic_or(left, right):
-    op = lambda bool_first, right_exp, left_var: \
-            j.Conditional_op(bool_first, left_var, right_exp)
-    return _logic_and_or(left, right, op, j.Logic_or)
-
 def _clo(jsast, pyast):
     ''' clo: copy line offset info from pyast to jsast, returns jsast. '''
     return jsast.set_location(getattr(pyast, 'lineno', -1))
@@ -536,6 +505,10 @@ class AstVisitor(object):
         self.__imported_spork_funcs = {}
         self.__spork_imported_as = None
         self._symbol = Symbol(module_name, debug)
+        self.__bool_op_maps = {
+                ast.And: self._logic_and,
+                ast.Or: self._logic_or
+            }
 
     def __is_spork_module(self, node):
         return isinstance(node, ast.Name) and \
@@ -996,10 +969,24 @@ class AstVisitor(object):
         t = self.__bin_op_maps[type(node.op)]
         return t(self.visit(node.left), self.visit(node.right))
 
-    __bool_op_maps = {
-            ast.And: _logic_and,
-            ast.Or: _logic_or
-        }
+    def _logic_and_or(self, left, right, condition_op, js_logic_op):
+        if _is_compatible_bool(left):
+            return js_logic_op(left, right)
+
+        assign, first_var = self._unique_var(left)
+        assign = assign.expr
+        bool_first = _do_force_bool(first_var)
+        cond_expr = condition_op(bool_first, right, first_var)
+        return j.CommaOp((assign, cond_expr))
+
+    def _logic_and(self, left, right):
+        op = j.Conditional_op
+        return self._logic_and_or(left, right, op, j.Logic_and)
+
+    def _logic_or(self, left, right):
+        op = lambda bool_first, right_exp, left_var: \
+                j.Conditional_op(bool_first, left_var, right_exp)
+        return self._logic_and_or(left, right, op, j.Logic_or)
 
     def visit_BoolOp(self, node):
         t = self.__bool_op_maps[type(node.op)]

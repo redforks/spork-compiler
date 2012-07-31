@@ -8,6 +8,7 @@ from functional import compose, scanl
 from itertools import izip, islice, chain, repeat
 from copy import copy
 from ConfigParser import SafeConfigParser
+from .collections import OrderedSet
 import operator
 
 from . import SporkError
@@ -430,12 +431,19 @@ class ModuleScope(Scope):
         super(ModuleScope, self).__init__(visitor)
         self.symbols = set()
         self.module_name = module_name
+        self.locals = OrderedSet()
 
     __predefined = {'None': j.Null(), 'True': j.True_(), 'False': j.False_(),
                 'NotImplemented': _undefined}
     __known_globals = ['isinstance', 'hasattr', 'int', 'str']
 
+    def add(self, symbol):
+        if symbol.startswith('_$t_'):
+            self.locals[symbol] = None
+
     def resolve(self, symbol, ctx):
+        if symbol in self.locals:
+            return id(symbol)
         if symbol in self.__predefined:
             return self.__predefined[symbol]
         elif symbol in self.__known_globals:
@@ -453,14 +461,23 @@ class ModuleScope(Scope):
                 return j.Attribute(MODULE_VAR_id, symbol)
 
 class ParentedScope(Scope):
-    def __init__(self, parent, locals=None):
+    def __init__(self, parent):
         super(ParentedScope, self).__init__(parent.visitor)
         self.parent = parent
-        self.locals = locals or set()
+        self.locals = OrderedSet()
 
 class FunctionScope(ParentedScope):
+    def __init__(self, parent, locals, args):
+        super(FunctionScope, self).__init__(parent)
+        self.locals.update(locals)
+        self.args = set(args)
+
+    def add(self, symbol):
+        if symbol not in self.args:
+            self.locals.add(symbol)
+
     def resolve(self, symbol, ctx):
-        if symbol in self.locals:
+        if symbol in self.locals or symbol in self.args:
             return id(symbol)
         else:
             parent = self.parent
@@ -640,7 +657,7 @@ class AstVisitor(object):
         self._remove_docstring(node)
         
         m = self.module_name
-        stats = [j.Declare_var_stat(IMPORT_TMP_VAR)]
+        stats = []
         if _is_builtin_module(m):
             stats.append(j.Declare_var_stat(MODULE_VAR, j.Struct(())))
             stats.append(j.AssignStat(j.Attribute(MODULE_VAR_id, '__debug__'),
@@ -661,6 +678,9 @@ class AstVisitor(object):
             stats.append(j.AssignStat(
                 j.Attribute(MODULE_VAR_id, '__srcmap__'),
                 j.SrcMap()))
+        vars = [IMPORT_TMP_VAR]
+        vars.extend(self.scope.locals)
+        stats.insert(0, j.DeclareMultiVar(vars))
 
         module_func = j.FunctionDef((), stats)
         module_stat = j.Expr_stat(j.Call(module_func, ()))
@@ -712,7 +732,8 @@ class AstVisitor(object):
     def _unique_var(self, initval = None):
         varname = self._unique_name()
         self.scope.add(varname)
-        return j.Declare_var_stat(varname, initval), id(varname)
+        var = id(varname)
+        return j.AssignStat(var, initval), var
 
     def _do_assign(self, targets, value):
         attr = j.Attribute
@@ -724,7 +745,8 @@ class AstVisitor(object):
             yield _clo(result, target)
 
         def do_normal(target, value):
-            self.scope.add(target.id)
+            if not isinstance(self.scope, FunctionScope):
+                self.scope.add(target.id)
             result = j.AssignStat(self.visit(target), value)
             yield _clo(result, target)
 
@@ -1077,7 +1099,7 @@ class AstVisitor(object):
             scaner.scan(node)
             if hasattr(node, 'name'):
                 self.scope.add(node.name)
-            self.scope = FunctionScope(self.scope, scaner.local_vars | scaner.args)
+            self.scope = FunctionScope(self.scope, scaner.local_vars, scaner.args)
             try:
                 return func(self, node)
             finally:
@@ -1240,13 +1262,12 @@ class AstVisitor(object):
                 raise NotImplementedError, 'function decorator is not supported'
 
         stats = []
-        local_vars = LocalVarScaner().scan(node)
-        if local_vars:
-            stats.append(j.DeclareMultiVar(local_vars))
         argstats, arglist = self._do_visit_arguments(node, argcheck)
 
         stats.extend(argstats)
         stats.extend(self._visit_stats(node.body))
+        if self.scope.locals:
+            stats.insert(0, j.DeclareMultiVar(self.scope.locals))
         self._auto_return(stats)
         f = j.FunctionDef(arglist, stats,
                 j._safe_js_id(node.name) if self.debug else None)
@@ -1324,14 +1345,13 @@ class AstVisitor(object):
                     decorator_list.remove(decorator)
 
         stats = []
-        local_vars = LocalVarScaner().scan(node)
-        if local_vars:
-            stats.append(j.DeclareMultiVar(local_vars))
         stats.extend(funcs[method_type](args.args))
         argstats, arglist = self._do_visit_arguments(node, self.argcheck,
                 method_type != STATIC)
         stats.extend(argstats)
         stats.extend(self._visit_stats(body))
+        if self.scope.locals:
+            stats.insert(0, j.DeclareMultiVar(self.scope.locals))
         self._auto_return(stats)
 
         result = j.Call(id('pyjs__bind_method'), (
@@ -1619,20 +1639,21 @@ class AstVisitor(object):
         try:
             elt, generators = node.elt, node.generators
 
-            def get_target_var(generator):
+            def check_one_target_var(generator):
                 target = generator.target
                 try:
                     return target.id
-                except:
+                except AttributeError:
                     raise NotImplementedError(
                         'List competency with more than 1 vars is not supported.')
 
             resultvar = self._unique_var()[1]
-            stats = [j.DeclareMultiVar([get_target_var(x) for x in generators])]
-            stats.append(j.Declare_var_stat(resultvar.id, 
+            stats = []
+            stats.append(j.AssignStat(id(resultvar.id), 
                 j.Call(j.Attribute(_sf, 'list'), ())))
             body = Call(Attribute(Name(resultvar.id), 'append'), (elt,))
             for generator in reversed(generators):
+                check_one_target_var(generator)
                 ifs, iter, target = generator.ifs, generator.iter, generator.target
                 assert len(ifs) <= 1
 
@@ -1641,6 +1662,8 @@ class AstVisitor(object):
                 body = For(target, iter, (body,))
             stats.extend(self.visit(body))
             stats.append(j.Return(resultvar))
+            if self.scope.locals:
+                stats.insert(0, j.DeclareMultiVar(self.scope.locals))
             func = j.ParenthesisOp(j.FunctionDef((), stats))
             return j.Call(func, ())
         finally:
@@ -1693,6 +1716,9 @@ class LocalVarScaner(NodeVisitor):
         self.args = set()
         self.expected_globals = set()
 
+    def _add_var(self, var):
+        self.local_vars.add(var)
+
     def visit_arguments(self, node):
         eat(self.args.add(n.id) for n in node.args)
         if node.vararg:
@@ -1717,7 +1743,7 @@ class LocalVarScaner(NodeVisitor):
                     raise SyntaxError(
                         "local variable '%s' referenced before assign. line: %s" %
                         (node.id, node.lineno))
-                self.local_vars.add(node.id)
+                self._add_var(node.id)
                 return True
             return False
 
@@ -1727,16 +1753,16 @@ class LocalVarScaner(NodeVisitor):
         super(LocalVarScaner, self).generic_visit(node)
 
     def visit_ClassDef(self, node):
-        self.local_vars.add(node.name)
+        self._add_var(node.name)
         node.is_in_func = True
 
     def visit_For(self, node):
         target, iter, orelse, body = node.target, node.iter, node.orelse, \
             node.body
         if isinstance(target, ast.Name):
-            self.local_vars.add(target.id)
+            self._add_var(target.id)
         elif isinstance(target, ast.Tuple):
-            eat(self.local_vars.add(n.id) for n in target.elts)
+            eat(self._add_var(n.id) for n in target.elts)
         else:
             assert False, 'can not handle ' + str(target)
         super(LocalVarScaner, self).generic_visit(iter)
@@ -1750,7 +1776,7 @@ class LocalVarScaner(NodeVisitor):
 
     def visit_FunctionDef(self, node):
         if self.hit:
-            self.local_vars.add(node.name)
+            self._add_var(node.name)
         else:
             self.hit = True
             return super(LocalVarScaner, self).generic_visit(node)
@@ -1758,12 +1784,12 @@ class LocalVarScaner(NodeVisitor):
     def visit_Import(self, node):
         for n in node.names:
             name = n.asname or n.name.partition('.')[0]
-            self.local_vars.add(name)
+            self._add_var(name)
         return super(LocalVarScaner, self).generic_visit(node)
 
     def visit_ExceptHandler(self, node):
         if node.name:
-            self.local_vars.add(node.name.id)
+            self._add_var(node.name.id)
         return super(LocalVarScaner, self).generic_visit(node)
 
     visit_ImportFrom = visit_Import

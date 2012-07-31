@@ -12,7 +12,7 @@ from spork.jscompiler import compile, get_module_filename
 from spork.io import IOUtil
 import spork.virtual_fs as vir_fs
 
-module_prefix = "var _$_import;" \
+module_prefix = "var _$_import%(v)s;" \
     "if(__builtin__._module_loaded('%(m)s')){return;}"\
     "var $m=new __builtin__.module('%(m)s','%(f)s.py');"
 
@@ -46,8 +46,11 @@ class JSCompilerTestBase(sporktest.MyTestCase):
         self.assertEqual(expected, back)
 
 class JSCompilerTest(JSCompilerTestBase):
-    def t(self, expected, code, module='t', **options):
-        prefix = module_prefix % {'m': module, 'f': module.replace('.', '/')}
+    def t(self, expected, code, module='t', vars='', **options):
+        if vars:
+            vars = ',' + ','.join(vars)
+        prefix = module_prefix % {
+                'm': module, 'f': module.replace('.', '/'), 'v': vars}
         if '.' in module:
             prefix += "__builtin__.import_('a').b=$m;" 
         expected = prefix + expected
@@ -56,9 +59,9 @@ class JSCompilerTest(JSCompilerTestBase):
 
     def test_with(self):
         expected = \
-        'var _$t_1=$m.a;' \
+        '_$t_1=$m.a;' \
         "_$t_1.__enter__();" \
-        'var _$t_2=true;' \
+        '_$t_2=true;' \
         'try{$m.c();}' \
         'catch(_$t_3){' \
             '_$t_2=false;' \
@@ -70,13 +73,13 @@ class JSCompilerTest(JSCompilerTestBase):
                 '_$t_1.__exit__(null,null,null);' \
             '}' \
         '}'
-        self.t(expected, 'with a: c()')
+        self.t(expected, 'with a: c()', vars=['_$t_1','_$t_2','_$t_3'])
 
     def test_with_var(self):
         expected = \
-        'var _$t_1=$m.a;' \
+        '_$t_1=$m.a;' \
         "$m.d=_$t_1.__enter__();" \
-        'var _$t_2=true;' \
+        '_$t_2=true;' \
         'try{$m.c=$m.d;}' \
         'catch(_$t_3){' \
             '_$t_2=false;' \
@@ -88,17 +91,18 @@ class JSCompilerTest(JSCompilerTestBase):
                 '_$t_1.__exit__(null,null,null);' \
             '}' \
         '}'
-        self.t(expected, 'with a as d: c=d')
+        self.t(expected, 'with a as d: c=d',
+                vars=['_$t_1','_$t_2','_$t_3'])
 
     def test_tmp_var_in_package_module(self):
-        self.t('var _$t_1=$m.a;'
+        self.t('_$t_1=$m.a;'
             '$m.b=_$t_1.__fastgetitem__(0);'
             '$m.c=_$t_1.__fastgetitem__(1);'
             'if(_$t_1.__len__()!==2){'
             'throw __builtin__.ValueError('
             "'too many values to unpack'"
             ');}',
-            'b, c = a', 'a.b')
+            'b, c = a', 'a.b', vars=['_$t_1'])
 
     def test_literal(self):
         t = self.t
@@ -230,7 +234,8 @@ class JSCompilerTest(JSCompilerTestBase):
         t('$m.a=1;$m.b=1;', 'a = b = 1')
         t('$m.a=1;$m.b=1;', 'a = 1\nb=1')
         t('$m.a=1;$m.b.__setitem__(3,1);', 'a = b[3] = 1')
-        t('var _$t_1=$m.c.__add__(2);$m.a=_$t_1;$m.b=_$t_1;', 'a = b = c+2')
+        t('_$t_1=$m.c.__add__(2);$m.a=_$t_1;$m.b=_$t_1;', 'a = b = c+2',
+                vars=['_$t_1'])
 
     def test_assign_subscription(self):
         t = self.t
@@ -344,21 +349,21 @@ class JSCompilerTest(JSCompilerTestBase):
 
     def test_tuple_assign(self):
         t = self.t
-        js ='var _$t_1=$m.p;$m.a=_$t_1.__fastgetitem__(0);'\
+        js ='_$t_1=$m.p;$m.a=_$t_1.__fastgetitem__(0);'\
             '$m.b=_$t_1.__fastgetitem__(1);'
-        t(js, 'a,b=p', debug=False)
+        t(js, 'a,b=p', debug=False, vars=['_$t_1'])
         t(js + 'if(_$t_1.__len__()!==2){'
         'throw __builtin__.ValueError('
         "'too many values to unpack');}",
-        'a,b=p', debug=True)
+        'a,b=p', debug=True, vars=['_$t_1'])
 
-        t('var _$t_1=__builtin__.tuple([3,4,5]);'
+        t('_$t_1=__builtin__.tuple([3,4,5]);'
           '$m.a=_$t_1.__fastgetitem__(0);$m.b=_$t_1.__fastgetitem__(1);'
           '$m.c=_$t_1.__fastgetitem__(2);'
           'if(_$t_1.__len__()!==3){'
           'throw __builtin__.ValueError('
           "'too many values to unpack');}",
-          'a,b,c=3,4,5')
+          'a,b,c=3,4,5', vars=['_$t_1'])
 
     def test_merge_var_declar(self):
         self.do_no_arg_func('var a,b;a=1;b=1;', '\n a=1\n b=1')
@@ -399,12 +404,13 @@ class JSCompilerTest(JSCompilerTestBase):
         t = self.t
         t('for($m.i=0;$m.i<10;$m.i++){}', 'for i in range(10): pass')
         t('for($m.i=0;$m.i<10;$m.i++){1;}', 'for i in xrange(10): 1')
-        t('var _$t_1=$m.a;for($m.i=0;$m.i<_$t_1;$m.i++){1;}', 'for i in xrange(a): 1')
-        t('(function(){var i;var _$t_1=__builtin__.list();var _$t_2=$m.a;'
+        t('_$t_1=$m.a;for($m.i=0;$m.i<_$t_1;$m.i++){1;}',
+                'for i in xrange(a): 1', vars=['_$t_1'])
+        t('(function(){var _$t_1,i,_$t_2;_$t_1=__builtin__.list();_$t_2=$m.a;'
             'for(i=0;i<_$t_2;i++){'
             '_$t_1.append(i);'
             '}return _$t_1;})();', '[i for i in xrange(a)]')
-        t('(function(){var i;var _$t_1=__builtin__.list();'
+        t('(function(){var _$t_1,i;_$t_1=__builtin__.list();'
             'for(i=0;i<10;i++){'
             '_$t_1.append(i);'
             '}return _$t_1;})();', '[i for i in range(10)]')
@@ -719,8 +725,8 @@ class C(object):
             "$m.a.__args__=[null,null,['b']];$m.a.__bind_type__=0;", 
             'def a(b):return b')
         t('$m.a=function a(b){'
-            'var c,d;'
-            'var _$t_1=__builtin__.tuple([1,2]);'
+            'var c,d,_$t_1;'
+            '_$t_1=__builtin__.tuple([1,2]);'
             'c=_$t_1.__fastgetitem__(0);'
             'd=_$t_1.__fastgetitem__(1);'
             'if(_$t_1.__len__()!==2){'
@@ -926,7 +932,7 @@ class C(object):
         t = self.t
         t(
             '$m.s=0;'
-            'var _$t_1=$m.foo(10).__iter__();'
+            '_$t_1=$m.foo(10).__iter__();'
             'try{'
                 'while(true){'
                     '$m.i=_$t_1.next();'
@@ -936,15 +942,15 @@ class C(object):
                 "if(_$t_2.__name__!=='StopIteration'){"
                     'throw _$t_2;'
                 '}'
-            '}', 's=0\nfor i in foo(10):s+=i')
+            '}', 's=0\nfor i in foo(10):s+=i', vars=('_$t_1','_$t_2'))
 
         with self.assertError(NotImplementedError, 'else in loop is not implemented.'):
             t('', 'for i in range(10):pass\nelse:pass;')
 
         self.do_no_arg_func(
-                'var i,s;'
+                'var i,s,_$t_1,_$t_2;'
                 's=0;'
-                'var _$t_1=$m.foo(10).__iter__();'
+                '_$t_1=$m.foo(10).__iter__();'
                 'try{'
                     'while(true){'
                         'i=_$t_1.next();'
@@ -958,12 +964,12 @@ class C(object):
             '\n s=0\n for i in foo(10):s+=i')
 
         self.do_no_arg_func(
-                'var i,s,j;'
+                'var i,s,j,_$t_1,_$t_2,_$t_3;'
                 's=0;'
-                'var _$t_1=$m.foo(10).__iter__();'
+                '_$t_1=$m.foo(10).__iter__();'
                 'try{'
                     'while(true){'
-                        'var _$t_2=_$t_1.next();'
+                        '_$t_2=_$t_1.next();'
                         'i=_$t_2.__fastgetitem__(0);'
                         'j=_$t_2.__fastgetitem__(1);'
                         'if(_$t_2.__len__()!==2){'
@@ -981,13 +987,13 @@ class C(object):
 
     def test_nested_for(self):
         self.do_no_arg_func(
-                'var i,s,j;'
+                'var i,s,j,_$t_1,_$t_2,_$t_3,_$t_4;'
                 's=0;'
-                'var _$t_1=$m.foo(10).__iter__();'
+                '_$t_1=$m.foo(10).__iter__();'
                 'try{'
                     'while(true){'
                         'i=_$t_1.next();'
-                        'var _$t_2=$m.foo(2).__iter__();'
+                        '_$t_2=$m.foo(2).__iter__();'
                         'try{'
                             'while(true){'
                                 'j=_$t_2.next();'
@@ -1030,7 +1036,7 @@ class C(object):
                 '{_$t_1=__builtin__._errorMapping(_$t_1);'\
                 + jscode + '}'
             pycode = 'try:pass\n' + pycode
-            self.t(jscode, pycode)
+            self.t(jscode, pycode, vars=['_$t_1'])
 
         valid('1;', 'except:1')
         valid('if(__builtin__.isinstance(_$t_1,$m.Exception))'
@@ -1051,7 +1057,7 @@ class C(object):
 
     def test_try_except_in_func(self):
         def valid(jscode, pycode):
-            jscode = '$m.f=function f(){var e;' \
+            jscode = '$m.f=function f(){var e,_$t_1;' \
             'try{}catch(_$t_1)' \
                 '{_$t_1=__builtin__._errorMapping(_$t_1);'\
                 + jscode + '}return null;};$m.f.__name__=\'f\';'\
@@ -1371,9 +1377,9 @@ def f():
         t = self.t
         t(
             '(function(){'
-            'var i;'
-            'var _$t_1=__builtin__.list();'
-                'var _$t_2=$m.foo(10).__iter__();'
+                'var _$t_1,_$t_2,i,_$t_3;'
+                '_$t_1=__builtin__.list();'
+                '_$t_2=$m.foo(10).__iter__();'
                 'try{'
                     'while(true){'
                         'i=_$t_2.next();'
@@ -1388,9 +1394,9 @@ def f():
 
         t(
             '(function(){'
-            'var i;'
-            'var _$t_1=__builtin__.list();'
-                'var _$t_2=$m.foo(10).__iter__();'
+                'var _$t_1,_$t_2,i,_$t_3;'
+                '_$t_1=__builtin__.list();'
+                '_$t_2=$m.foo(10).__iter__();'
                 'try{'
                     'while(true){'
                         'i=_$t_2.next();'
@@ -1407,13 +1413,13 @@ def f():
 
         t(
             '(function(){'
-            'var x,y;'
-            'var _$t_1=__builtin__.list();'
-                'var _$t_2=$m.foo(10).__iter__();'
+                'var _$t_1,_$t_2,x,_$t_3,y,_$t_4,_$t_5;'
+                '_$t_1=__builtin__.list();'
+                '_$t_2=$m.foo(10).__iter__();'
                 'try{'
                     'while(true){'
                         'x=_$t_2.next();'
-                        'var _$t_3=$m.bar(20).__iter__();'
+                        '_$t_3=$m.bar(20).__iter__();'
                         'try{'
                             'while(true){'
                                 'y=_$t_3.next();'
@@ -1435,14 +1441,14 @@ def f():
 
         t(
             '(function(){'
-            'var x,y;'
-            'var _$t_1=__builtin__.list();'
-                'var _$t_2=$m.foo(10).__iter__();'
+                'var _$t_1,_$t_2,x,_$t_3,y,_$t_4,_$t_5;'
+                '_$t_1=__builtin__.list();'
+                '_$t_2=$m.foo(10).__iter__();'
                 'try{'
                     'while(true){'
                         'x=_$t_2.next();'
                         'if(__builtin__.__lt(x,5)){'
-                            'var _$t_3=$m.bar(20).__iter__();'
+                            '_$t_3=$m.bar(20).__iter__();'
                             'try{'
                                 'while(true){'
                                     'y=_$t_3.next();'

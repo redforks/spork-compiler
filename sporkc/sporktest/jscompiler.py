@@ -1031,7 +1031,7 @@ class C(object):
                 '{_$t_1=__builtin__._errorMapping(_$t_1);'\
                 + jscode + '}'
             pycode = 'try:pass\n' + pycode
-            self.t(jscode, pycode, vars=['_$t_1'])
+            self.t(jscode, pycode)
 
         valid('1;', 'except:1')
         valid('if(__builtin__.isinstance(_$t_1,$m.Exception))'
@@ -1052,7 +1052,7 @@ class C(object):
 
     def test_try_except_in_func(self):
         def valid(jscode, pycode):
-            jscode = '$m.f=function f(){var e,_$t_1;' \
+            jscode = '$m.f=function f(){var e;' \
             'try{}catch(_$t_1)' \
                 '{_$t_1=__builtin__._errorMapping(_$t_1);'\
                 + jscode + '}return null;};$m.f.__name__=\'f\';'\

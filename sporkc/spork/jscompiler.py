@@ -464,6 +464,20 @@ class ListCompScope(ParentedScope):
     def add(self, symbol):
         self.locals.add(symbol)
 
+class ExceptionHandlerScope(ParentedScope):
+    def __init__(self, parent, except_var):
+        super(ExceptionHandlerScope, self).__init__(parent)
+        self.except_var = except_var
+
+    def resolve(self, symbol, ctx):
+        if symbol == self.except_var:
+            return id(symbol)
+        else:
+            return self.parent.resolve(symbol, ctx)
+
+    def add(self, symbol):
+        self.parent.add(symbol)
+
 class ClassDefScope(ParentedScope):
     def resolve(self, symbol, ctx):
         if symbol in self.locals:
@@ -1425,26 +1439,32 @@ class AstVisitor(object):
 
     @_cplo
     def visit_TryExcept(self, node):
-        errvar = self._unique_var()[1]
-        stats = []
-        stats.append(j.AssignStat(errvar, j.Call(j.Attribute(_sf,
-            '_errorMapping'), (errvar,))))
+        errvar = self._unique_name()
+        old_scope = self.scope
+        self.scope = ExceptionHandlerScope(self.scope, errvar)
+        errvar = id(errvar)
+        try:
+            stats = []
+            stats.append(j.AssignStat(errvar, j.Call(j.Attribute(_sf,
+                '_errorMapping'), (errvar,))))
 
-        handlers, body, orelse = node.handlers, node.body, node.orelse
-        if orelse:
-            raise NotImplementedError, 'else in try is not implemented.'
+            handlers, body, orelse = node.handlers, node.body, node.orelse
+            if orelse:
+                raise NotImplementedError, 'else in try is not implemented.'
 
-        s = stats
-        for h in handlers:
-            stat, elsepart = self._do_ExceptHandler(h, errvar)
-            s.append(stat)
-            s = elsepart
-        if handlers[-1].type:
-            s.append(j.Throw(errvar))
-        catch = j.TryHandler(errvar, stats)
-        catch = _clo(catch, node)
+            s = stats
+            for h in handlers:
+                stat, elsepart = self._do_ExceptHandler(h, errvar)
+                s.append(stat)
+                s = elsepart
+            if handlers[-1].type:
+                s.append(j.Throw(errvar))
+            catch = j.TryHandler(errvar, stats)
+            catch = _clo(catch, node)
 
-        return j.Try(self._visit_stats(body), catch)
+            return j.Try(self._visit_stats(body), catch)
+        finally:
+            self.scope = old_scope
 
     @_cplo
     def visit_TryFinally(self, node):

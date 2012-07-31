@@ -302,7 +302,8 @@ class JSRenderTest(RenderTestBase):
 
     def test_comma_op(self):
         t = self.t
-        t('1,2', j.CommaOp([j.Num(1), j.Num(2)]))
+        t('1,2', j.CommaOp([n(1), n(2)]))
+        t('1,(1+2)', j.CommaOp([n(1), j.Plus(n(1), n(2))]))
 
     def test_parenthesis_op(self):
         self.t('(1)', j.ParenthesisOp(j.Num(1)))

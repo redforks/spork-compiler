@@ -28,8 +28,10 @@ class AstVisitor(object):
     def __init__(self, output):
         self.output = output
 
-    def write(self, s):
+    def write_raw(self, s):
         self.output.write(s)
+
+    write = write_raw
 
     def visit(self, node):
         method = 'visit_' + node.__class__.__name__
@@ -87,7 +89,7 @@ class Render(AstVisitor):
     def visit_This(self, node):
         self.write('this')
 
-    def _visit_list(self, elements, sep = ',', newline=False):
+    def _visit_list(self, elements, sep = ',', newline=False, as_sub_expr=False):
         first = True
         for item in elements:
             if first:
@@ -97,7 +99,10 @@ class Render(AstVisitor):
                     self._writeln(sep)
                 else:
                     self.write(sep)
-            self.visit(item)
+            if as_sub_expr:
+                self._visit_sub_expr(item)
+            else:
+                self.visit(item)
 
     def visit_Array(self, node):
         self.write('[')
@@ -135,7 +140,7 @@ class Render(AstVisitor):
             self.output = oldoutput
             if needgroup:
                 self.write('(')
-            self.write(output.getvalue())
+            self.write_raw(output.getvalue())
             if needgroup:
                 self.write(')')
 
@@ -226,7 +231,7 @@ class Render(AstVisitor):
     def visit_Call(self, node):
         self._visit_sub_expr(node.val)
         self.write('(')
-        self._visit_list(node.args)
+        self._visit_list(node.args, as_sub_expr=True)
         self.write(')')
 
     def visit_Struct(self, node):
@@ -240,7 +245,8 @@ class Render(AstVisitor):
         self.visit(node.expr)
 
     def visit_CommaOp(self, node):
-        self._visit_list(node.items)
+        self._visit_list(node.items, as_sub_expr=True)
+        return True
 
     def visit_ParenthesisOp(self, node):
         self.write('(')
@@ -364,9 +370,9 @@ class DebugRender(Render):
             self.__jslineno += 1
         super(DebugRender, self).write(v)
 
-    def _visit_list(self, elements, sep = ',', newline=False):
+    def _visit_list(self, elements, sep = ',', newline=False, as_sub_expr=False):
         return super(DebugRender, self)._visit_list(elements, sep + ' ',
-                newline)
+                newline, as_sub_expr)
 
     def indent(self):
         self.__indents += '  '

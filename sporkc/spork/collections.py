@@ -79,3 +79,17 @@ def iter_or_singleton(val):
         return iter(val)
     else:
         return (val,)
+
+class OrderedSet(collections.OrderedDict):
+    # it is not a real set, but enough for our use
+    def __init__(self, iterable=None):
+        if iterable:
+            super(OrderedSet, self).__init__(((k, None) for k in iterable))
+        else:
+            super(OrderedSet, self).__init__()
+
+    def add(self, item):
+        self[item] = None
+
+    def update(self, iterable):
+        super(OrderedSet, self).update(collections.OrderedDict.fromkeys(iterable))

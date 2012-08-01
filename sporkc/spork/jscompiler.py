@@ -1419,7 +1419,7 @@ class AstVisitor(object):
             stats = self._do_assign([target], right)
             stats.extend(self._visit_stats(body))
             w = j.While(j.True_(),(stats,))
-            errorvar = self._unique_var()[1]
+            errorvar = id(self._unique_name())
             catch = j.TryHandler(errorvar, (
                 j.If(j.Not_identical(j.Attribute(errorvar, '__name__'),
                    j.Str('StopIteration')),

@@ -937,13 +937,13 @@ class C(object):
                 "if(_$t_2.__name__!=='StopIteration'){"
                     'throw _$t_2;'
                 '}'
-            '}', 's=0\nfor i in foo(10):s+=i', vars=('_$t_1','_$t_2'))
+            '}', 's=0\nfor i in foo(10):s+=i', vars=('_$t_1',))
 
         with self.assertError(NotImplementedError, 'else in loop is not implemented.'):
             t('', 'for i in range(10):pass\nelse:pass;')
 
         self.do_no_arg_func(
-                'var i,s,_$t_1,_$t_2;'
+                'var i,s,_$t_1;'
                 's=0;'
                 '_$t_1=$m.foo(10).__iter__();'
                 'try{'
@@ -959,7 +959,7 @@ class C(object):
             '\n s=0\n for i in foo(10):s+=i')
 
         self.do_no_arg_func(
-                'var i,s,j,_$t_1,_$t_2,_$t_3;'
+                'var i,s,j,_$t_1,_$t_2;'
                 's=0;'
                 '_$t_1=$m.foo(10).__iter__();'
                 'try{'
@@ -982,7 +982,7 @@ class C(object):
 
     def test_nested_for(self):
         self.do_no_arg_func(
-                'var i,s,j,_$t_1,_$t_2,_$t_3,_$t_4;'
+                'var i,s,j,_$t_1,_$t_2;'
                 's=0;'
                 '_$t_1=$m.foo(10).__iter__();'
                 'try{'
@@ -1372,7 +1372,7 @@ def f():
         t = self.t
         t(
             '(function(){'
-                'var _$t_1,_$t_2,i,_$t_3;'
+                'var _$t_1,_$t_2,i;'
                 '_$t_1=__builtin__.list();'
                 '_$t_2=$m.foo(10).__iter__();'
                 'try{'
@@ -1389,7 +1389,7 @@ def f():
 
         t(
             '(function(){'
-                'var _$t_1,_$t_2,i,_$t_3;'
+                'var _$t_1,_$t_2,i;'
                 '_$t_1=__builtin__.list();'
                 '_$t_2=$m.foo(10).__iter__();'
                 'try{'
@@ -1408,7 +1408,7 @@ def f():
 
         t(
             '(function(){'
-                'var _$t_1,_$t_2,x,_$t_3,y,_$t_4,_$t_5;'
+                'var _$t_1,_$t_2,x,_$t_3,y;'
                 '_$t_1=__builtin__.list();'
                 '_$t_2=$m.foo(10).__iter__();'
                 'try{'
@@ -1436,7 +1436,7 @@ def f():
 
         t(
             '(function(){'
-                'var _$t_1,_$t_2,x,_$t_3,y,_$t_4,_$t_5;'
+                'var _$t_1,_$t_2,x,_$t_3,y;'
                 '_$t_1=__builtin__.list();'
                 '_$t_2=$m.foo(10).__iter__();'
                 'try{'

@@ -1117,6 +1117,13 @@ class AstVisitor(object):
 
     def _do_visit_arguments(self, node, argcheck, ignore_self=False):
         def do_argcheck(has_arg_prep_stat, node):
+            def gen_check_js(funcname, op, arg_count, adj):
+                s_arg_count = str(arg_count)
+                return ('if (arguments.length' + op + s_arg_count + ')'
+                    "{\n  throw __builtin__.TypeError("
+                    "'"+funcname+"() takes " + adj + ' ' + s_arg_count +
+                    " arguments ('+arguments.length+' given)');\n}\n")
+
             args = node.args
             minlen = len(args.args)
             if ignore_self:
@@ -1124,38 +1131,21 @@ class AstVisitor(object):
             funcname = getattr(node, 'name', '<lambda>')
 
             if not has_arg_prep_stat:
-                s_arg_count = str(minlen)
-                return j.Js('if (arguments.length!==' + s_arg_count + ')'
-                    "{\nthrow __builtin__.TypeError("
-                    "'"+funcname+"() takes exactly " + s_arg_count +
-                    " arguments ('+arguments.length+' given)');\n}\n"
-                )
+                return j.Js(gen_check_js(funcname, '!==', minlen, 'exactly'))
             else:
                 maxlen = minlen
                 minlen -= len(args.defaults)
                 js = elsejs = ''
 
                 if minlen:
-                    sminlen = str(minlen)
-                    js = ('if (arguments.length<' + sminlen + 
-                        "){\nthrow __builtin__.TypeError("
-                        "'"+funcname+"() takes at least " + sminlen +
-                        " arguments ('+arguments.length+' given)');\n}\n")
+                    js = gen_check_js(funcname, '<', minlen, 'at least')
 
                 if args.kwarg:
-                    sminlen = str(minlen + 1)
                     if not args.vararg:
-                        elsejs = ('if (arguments.length>' + sminlen + ')'
-                            "{\nthrow __builtin__.TypeError("
-                            "'"+funcname+"() takes at most " + sminlen +
-                            " arguments ('+arguments.length+' given)');\n}\n")
+                        elsejs = gen_check_js(funcname, '>', minlen + 1,
+                            'at most')
                 elif args.defaults and not args.vararg:
-                    smaxlen = str(maxlen)
-                    elsejs += ('if (' +
-                        'arguments.length>' + smaxlen + ')'
-                        "{\nthrow __builtin__.TypeError("
-                        "'"+funcname+"() takes at most " + smaxlen +
-                        " arguments ('+arguments.length+' given)');\n}\n")
+                    elsejs += gen_check_js(funcname, '>', maxlen, 'at most')
                 if js or elsejs:
                     if elsejs:
                         js = (js + 'else ' + elsejs) if js else (js + elsejs)

@@ -648,20 +648,20 @@ class JSCompilerTest(JSCompilerTestBase):
 
     def __js_at_least_arg(self, funcname, args):
         return ("if (arguments.length<%s){\n"
-                "throw __builtin__.TypeError("
+                "  throw __builtin__.TypeError("
                     "'%s() takes at least %s arguments ('"
                     "+arguments.length+' given)');\n}\n") % (args, funcname, args)
 
     def __js_at_most_arg(self, funcname, args):
         return ("if (arguments.length>%s){\n"
-                "throw __builtin__.TypeError("
+                "  throw __builtin__.TypeError("
                     "'%s() takes at most %s arguments ('"
                     "+arguments.length+' given)');\n}\n") % (args, funcname, args)
 
     def __js_exact_arg(self, funcname, arg_count):
         return (
             "if (arguments.length!==%s){\n"
-                "throw __builtin__.TypeError("
+                "  throw __builtin__.TypeError("
                     "'%s() takes exactly %s"
                     " arguments ('+arguments.length+' given)');\n}\n" %
             (arg_count, funcname, arg_count))

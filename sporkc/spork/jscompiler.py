@@ -18,7 +18,6 @@ from .io import IOUtil, read_file
 from .collections import eat
 from ._jsvisitors import Render, DebugRender, escapejs
 from .internal import constf, nonef
-from hashlib import md5
 from ._jsast import _safe_js_id
 
 id = j.Name
@@ -1350,7 +1349,6 @@ class AstVisitor(object):
             j.Num(method_type), self.build_js_args(args)
             ))
 
-        curscope = self.scope
         with self._push_scope(self.scope.parent):
             for decor in decorator_list:
                 result = j.Call(self.visit(decor), [result])
@@ -1425,7 +1423,6 @@ class AstVisitor(object):
     @_cplo
     def visit_TryExcept(self, node):
         errvar = self._unique_name()
-        old_scope = self.scope
         with self._push_scope(ExceptionHandlerScope(self.scope, errvar)):
             errvar = id(errvar)
             stats = []

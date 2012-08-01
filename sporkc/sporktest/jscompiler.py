@@ -1892,8 +1892,8 @@ preload:         <script type="text/javascript" src="../../__builtin__.js"></scr
         self.gen_home_page('a')
         self.assert_html('a.html', '''
 sflib: 
-preload:         <script type="text/javascript" src="__builtin__.js"></script>
-        <link rel="stylesheet" href="a.css">
+preload:         <link rel="stylesheet" href="a.css">
+        <script type="text/javascript" src="__builtin__.js"></script>
         <script type="text/javascript" src="a.js"></script>
 ''')
 
@@ -1908,9 +1908,9 @@ preload:         <script type="text/javascript" src="__builtin__.js"></script>
         self.gen_home_page('a.b')
         self.assert_html('a/b.html', '''
 sflib: ../
-preload:         <script type="text/javascript" src="../__builtin__.js"></script>
-        <link rel="stylesheet" href="../a.css">
+preload:         <link rel="stylesheet" href="../a.css">
         <link rel="stylesheet" href="../styles/a.css">
+        <script type="text/javascript" src="../__builtin__.js"></script>
         <script type="text/javascript" src="../a.js"></script>
         <script type="text/javascript" src="../a/b.js"></script>
 ''')
@@ -1929,9 +1929,9 @@ preload:         <script type="text/javascript" src="../__builtin__.js"></script
         self.gen_home_page('b')
         self.assert_html('b.html', '''
 sflib: 
-preload:         <script type="text/javascript" src="__builtin__.js"></script>
+preload:         <link rel="stylesheet" href="a/a.css">
+        <script type="text/javascript" src="__builtin__.js"></script>
         <script type="text/javascript" src="a.js"></script>
-        <link rel="stylesheet" href="a/a.css">
         <script type="text/javascript" src="a/core.js"></script>
         <script type="text/javascript" src="a/b.js"></script>
         <script type="text/javascript" src="b.js"></script>
@@ -1995,9 +1995,9 @@ preload:         <script type="text/javascript" src="__builtin__.js"></script>
         self.gen_home_page('a')
         self.assert_html('a.html', '''
 sflib: 
-preload:         <script type="text/javascript" src="__builtin__.js"></script>
+preload:         <link rel="stylesheet" href="a.css">
+        <script type="text/javascript" src="__builtin__.js"></script>
         <script type="text/javascript" src="b.js"></script>
-        <link rel="stylesheet" href="a.css">
         <script type="text/javascript" src="extra.js"></script>
         <script type="text/javascript" src="a.js"></script>
 ''')

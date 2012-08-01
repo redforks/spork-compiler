@@ -226,12 +226,13 @@ def gen_home_page(libdir, outdir, module, template=None):
                 ' src="%s%s%s"></script>'
             imported_js_files = partial(imported_files, template)
 
-            def js_files(files):
+            def js_files(f):
                 template = '        <script type="text/javascript"' \
                     ' src="%s%s"></script>'
-                return (template % (sflib(), x) for x in files)
+                return template % (sflib(), f)
 
             lines = []
+            js_lines = []
             for m in all_imported_modules():
                 module_file = to_js_filename(m)
                 module_path = os.path.split(module_file)[0]
@@ -239,8 +240,9 @@ def gen_home_page(libdir, outdir, module, template=None):
                     module_path += '/'
                 msymbol = load_symbol(outdir, m)
                 lines.extend(css_files(module_path, msymbol._css_files))
-                lines.extend(imported_js_files(module_path, msymbol._js_files))
-                lines.extend(js_files((module_file,)))
+                js_lines.extend(imported_js_files(module_path, msymbol._js_files))
+                js_lines.append(js_files(module_file))
+            lines.extend(js_lines)
             return '\n'.join(lines)
 
         return {

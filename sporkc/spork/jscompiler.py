@@ -1805,9 +1805,10 @@ class LocalVarScaner(NodeVisitor):
 
     def scan(self, node):
         self.visit(node)
-        self.local_vars.difference_update(self.globals)
-        self.local_vars.difference_update(self.args)
-        return self.local_vars
+        result = self.local_vars
+        result -= self.globals
+        result -= self.args
+        return result
 
 from os.path import expanduser
 

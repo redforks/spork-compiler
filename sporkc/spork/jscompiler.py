@@ -8,6 +8,7 @@ from functional import compose, scanl
 from itertools import izip, islice, chain, repeat
 from copy import copy
 from ConfigParser import SafeConfigParser
+from contextlib import contextmanager
 from .collections import OrderedSet
 import operator
 
@@ -1100,11 +1101,8 @@ class AstVisitor(object):
             scaner.scan(node)
             if hasattr(node, 'name'):
                 self.scope.add(node.name)
-            self.scope = FunctionScope(self.scope, scaner.local_vars, scaner.args)
-            try:
+            with self._push_scope(FunctionScope(self.scope, scaner.local_vars, scaner.args)):
                 return func(self, node)
-            finally:
-                self.scope = self.scope.parent
 
         return result
 
@@ -1353,12 +1351,9 @@ class AstVisitor(object):
             ))
 
         curscope = self.scope
-        self.scope = self.scope.parent
-        try:
+        with self._push_scope(self.scope.parent):
             for decor in decorator_list:
                 result = j.Call(self.visit(decor), [result])
-        finally:
-            self.scope = curscope
 
         result = j.AssignStat(j.Attribute(CLS_DEF_VAR_id, 
             name), result)
@@ -1431,9 +1426,8 @@ class AstVisitor(object):
     def visit_TryExcept(self, node):
         errvar = self._unique_name()
         old_scope = self.scope
-        self.scope = ExceptionHandlerScope(self.scope, errvar)
-        errvar = id(errvar)
-        try:
+        with self._push_scope(ExceptionHandlerScope(self.scope, errvar)):
+            errvar = id(errvar)
             stats = []
             stats.append(j.AssignStat(errvar, j.Call(j.Attribute(_sf,
                 '_errorMapping'), (errvar,))))
@@ -1453,8 +1447,6 @@ class AstVisitor(object):
             catch = _clo(catch, node)
 
             return j.Try(self._visit_stats(body), catch)
-        finally:
-            self.scope = old_scope
 
     @_cplo
     def visit_TryFinally(self, node):
@@ -1483,8 +1475,7 @@ class AstVisitor(object):
                     'class defined in class is not supported.')
 
         self._remove_docstring(node)
-        self.scope = ClassDefScope(self.scope)
-        try:
+        with self._push_scope(ClassDefScope(self.scope)):
             bases, body, name = node.bases, node.body, node.name
             if not bases and name != 'object':
                 raise NotImplementedError(_('old style class is not supported.'))
@@ -1503,9 +1494,7 @@ class AstVisitor(object):
                 cls_instance = j.Call(id('pyjs__class_instance'),
                         (j.Str(j._safe_js_id(name)), j.Str(self.module_name)))
 
-                old_scope = self.scope
-                self.scope = self.scope.parent
-                try:
+                with self._push_scope(self.scope.parent):
                     if len(node.bases) == 1:
                         args = (
                                 cls_instance, CLS_DEF_VAR_id,
@@ -1520,14 +1509,10 @@ class AstVisitor(object):
                             )
                         stats.append(j.Return(j.Call(id('pyjs__class_function'),
                             args)))
-                finally:
-                    self.scope = old_scope
 
                 return j.FunctionDef((), stats)
             left = self.scope.resolve(name, None)
             return j.AssignStat(left, j.Call(buildfunc(), ()))
-        finally:
-            self.scope = self.scope.parent
 
     def __gen_import(self, node, module_name):
         names = iter(module_name.split('.'))
@@ -1629,8 +1614,7 @@ class AstVisitor(object):
             r.test, r.body, r.orelse = test, body, orelse
             return copy_location(r, node)
 
-        self.scope = ListCompScope(self.scope)
-        try:
+        with self._push_scope(ListCompScope(self.scope)):
             elt, generators = node.elt, node.generators
 
             def check_one_target_var(generator):
@@ -1660,8 +1644,6 @@ class AstVisitor(object):
                 stats.insert(0, j.DeclareMultiVar(self.scope.locals))
             func = j.ParenthesisOp(j.FunctionDef((), stats))
             return j.Call(func, ())
-        finally:
-            self.scope = self.scope.parent
 
     def visit_GeneratorExp(self, node):
         def create_args(args):
@@ -1680,8 +1662,7 @@ class AstVisitor(object):
             result.body = if_expr
             return result
 
-        self.scope = ListCompScope(self.scope)
-        try:
+        with self._push_scope(ListCompScope(self.scope)):
             elt, generators = node.elt, node.generators
             if len(generators) != 1:
                 msg = 'comprehension with more than 1 iter source is not supported'
@@ -1699,8 +1680,13 @@ class AstVisitor(object):
             select_js = self.visit(select_func(target, elt))
             if_js = self.visit(if_func(target, ifs[0])) if ifs else j.Null()
             return j.Call(comp_expr, (iter_js,select_js, if_js))
-        finally:
-            self.scope = self.scope.parent
+
+    @contextmanager
+    def _push_scope(self, scope):
+        old_scope = self.scope
+        self.scope = scope
+        yield
+        self.scope = old_scope
 
 class LocalVarScaner(NodeVisitor):
     def __init__(self):

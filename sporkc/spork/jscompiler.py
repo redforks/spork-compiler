@@ -1524,10 +1524,7 @@ class AstVisitor(object):
                     self.scope = old_scope
 
                 return j.FunctionDef((), stats)
-            if hasattr(node, 'is_in_func'):
-                left = id(name)
-            else:
-                left = j.Attribute(MODULE_VAR_id, name)
+            left = self.scope.resolve(name, None)
             return j.AssignStat(left, j.Call(buildfunc(), ()))
         finally:
             self.scope = self.scope.parent
@@ -1751,7 +1748,6 @@ class LocalVarScaner(NodeVisitor):
 
     def visit_ClassDef(self, node):
         self._add_var(node.name)
-        node.is_in_func = True
 
     def visit_For(self, node):
         target, iter, orelse, body = node.target, node.iter, node.orelse, \

@@ -16,6 +16,7 @@ from . import SporkError
 import spork._jsast as j
 from .io import IOUtil, read_file
 from .collections import eat
+import spork._jsvisitors
 from ._jsvisitors import Render, DebugRender, escapejs
 from .internal import constf, nonef
 from ._jsast import _safe_js_id
@@ -1467,6 +1468,29 @@ class AstVisitor(object):
 
     @_cplo
     def visit_ClassDef(self, node):
+        class ClsInstanceScanner(spork._jsvisitors.AstVisitor):
+            exist = False
+            def __init__(self):
+                super(ClsInstanceScanner, self).__init__(None)
+
+            def visit_Name(self, node):
+                if node.id == CLS_DEF_VAR:
+                    self.exist = True
+
+            def generic_visit(self, node):
+                if isinstance(node, str):
+                    return
+
+                for field in node._fields:
+                    val = getattr(node, field)
+                    if val is not None:
+                        self.visit(val)
+
+        def is_ref_cls_instance(node):
+            scanner = ClsInstanceScanner()
+            scanner.visit(node)
+            return scanner.exist
+
         if isinstance(self.scope, ClassDefScope):
             raise NotImplementedError( \
                     'class defined in class is not supported.')
@@ -1480,8 +1504,27 @@ class AstVisitor(object):
                 raise NotImplementedError(
                         _('decorator on class is not supported.'))
 
-            stats = [j.Declare_var_stat(CLS_DEF_VAR, j.Struct(()))]
-            stats.extend(self._visit_stats(body))
+            cls_def = []
+            stats = [j.Declare_var_stat(CLS_DEF_VAR, j.Struct(cls_def))]
+            members = self._visit_stats(body)
+            while members:
+                member = members[0]
+                while isinstance(member, list):
+                    members[0:1] = member
+                    member = members[0]
+
+                if isinstance(member, j.Expr_stat):
+                    assign = member.expr
+                    left, right = assign.left, assign.right
+                    if not isinstance(left, j.Attribute) or\
+                            is_ref_cls_instance(right):
+                        break
+                    else:
+                        cls_def.append(j.Struct_item(left.attr, right))
+                        del members[0]
+                else:
+                    break
+            stats.extend(members)
 
         if len(node.bases) == 1:
             bases = self.visit(node.bases[0])

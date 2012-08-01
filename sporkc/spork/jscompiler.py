@@ -1480,36 +1480,26 @@ class AstVisitor(object):
                 raise NotImplementedError(
                         _('decorator on class is not supported.'))
 
-            def buildfunc():
-                stats = []
+            stats = [j.Declare_var_stat(CLS_DEF_VAR, j.Struct(()))]
+            stats.extend(self._visit_stats(body))
 
-                right = j.Struct(())
-                stats.append(j.Declare_var_stat(CLS_DEF_VAR, right))
+        if len(node.bases) == 1:
+            bases = self.visit(node.bases[0])
+            create_func = 'pyjs__class_function_single_base'
+        else:
+            bases = j.Array([self.visit(n) for n in node.bases])
+            create_func = 'pyjs__class_function'
 
-                stats.append(self._visit_stats(body))
+        cls_instance = j.Call(id('pyjs__class_instance'),
+            (j.Str(j._safe_js_id(name)), j.Str(self.module_name)))
+        args = cls_instance, CLS_DEF_VAR_id, bases
+        create_cls = j.Call(id(create_func), args)
+        stats.append(j.Return(create_cls))
 
-                cls_instance = j.Call(id('pyjs__class_instance'),
-                        (j.Str(j._safe_js_id(name)), j.Str(self.module_name)))
-
-                with self._push_scope(self.scope.parent):
-                    if len(node.bases) == 1:
-                        args = (
-                                cls_instance, CLS_DEF_VAR_id,
-                                self.visit(node.bases[0])
-                            )
-                        stats.append(j.Return(j.Call(id('pyjs__class_function_single_base'),
-                            args)))
-                    else:
-                        args = (
-                                cls_instance, CLS_DEF_VAR_id,
-                                j.Array([self.visit(n) for n in node.bases]),
-                            )
-                        stats.append(j.Return(j.Call(id('pyjs__class_function'),
-                            args)))
-
-                return j.FunctionDef((), stats)
-            left = self.scope.resolve(name, None)
-            return j.AssignStat(left, j.Call(buildfunc(), ()))
+        left = self.scope.resolve(name, None)
+        right = j.FunctionDef((), stats)
+        right = j.Call(right, ())
+        return j.AssignStat(left, right)
 
     def __gen_import(self, node, module_name):
         names = iter(module_name.split('.'))

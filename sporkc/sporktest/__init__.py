@@ -11,3 +11,4 @@ class MyTestCase(spork.test.TestBase):
         else:
             super(MyTestCase, self).assertEqual(x, y)
 
+    assertEquals = assertEqual

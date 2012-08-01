@@ -195,9 +195,6 @@ def gen_home_page(libdir, outdir, module, template=None):
         def sflib():
             return '../' * module.count('.')
 
-        def gen_lines(files, template):
-            return (template % (sflib(), x) for x in files)
-
         def all_imported_modules():
             result = ['__builtin__']
             loading = set()
@@ -219,21 +216,31 @@ def gen_home_page(libdir, outdir, module, template=None):
             return result
 
         def preload():
-            def css_files(files):
-                template = '        <link rel="stylesheet" href="%s%s">' 
-                return gen_lines(files, template)
+            def imported_files(template, module_path, files):
+                return (template % (sflib(), module_path, x) for x in files)
+
+            template = '        <link rel="stylesheet" href="%s%s%s">' 
+            css_files = partial(imported_files, template)
+
+            template = '        <script type="text/javascript"' \
+                ' src="%s%s%s"></script>'
+            imported_js_files = partial(imported_files, template)
 
             def js_files(files):
                 template = '        <script type="text/javascript"' \
                     ' src="%s%s"></script>'
-                return gen_lines(files, template)
+                return (template % (sflib(), x) for x in files)
 
             lines = []
             for m in all_imported_modules():
+                module_file = to_js_filename(m)
+                module_path = os.path.split(module_file)[0]
+                if module_path:
+                    module_path += '/'
                 msymbol = load_symbol(outdir, m)
-                lines.extend(css_files(msymbol._css_files))
-                lines.extend(js_files(msymbol._js_files))
-                lines.extend(js_files((to_js_filename(m),)))
+                lines.extend(css_files(module_path, msymbol._css_files))
+                lines.extend(imported_js_files(module_path, msymbol._js_files))
+                lines.extend(js_files((module_file,)))
             return '\n'.join(lines)
 
         return {

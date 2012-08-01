@@ -1915,6 +1915,28 @@ preload:         <script type="text/javascript" src="../__builtin__.js"></script
         <script type="text/javascript" src="../a/b.js"></script>
 ''')
 
+    def test_import_css_in_package2(self):
+        self.new_debug_symbol_file('a')
+        symbol = self.new_debug_symbol('a.b')
+        symbol.add_css_file('a.css')
+        symbol.add_js_file('core.js')
+        self.write_symbol(symbol)
+
+        symbol = self.new_debug_symbol('b')
+        symbol.add_import('a.b')
+        self.write_symbol(symbol)
+
+        self.gen_home_page('b')
+        self.assert_html('b.html', '''
+sflib: 
+preload:         <script type="text/javascript" src="__builtin__.js"></script>
+        <script type="text/javascript" src="a.js"></script>
+        <link rel="stylesheet" href="a/a.css">
+        <script type="text/javascript" src="a/core.js"></script>
+        <script type="text/javascript" src="a/b.js"></script>
+        <script type="text/javascript" src="b.js"></script>
+''')
+
     def test_import_js(self):
         symbol = self.new_debug_symbol('a')
         symbol.add_js_file('b.js')

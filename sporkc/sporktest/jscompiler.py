@@ -576,12 +576,12 @@ class JSCompilerTest(JSCompilerTestBase):
 
     def test_lambda(self):
         t = self.t
-        t('function(){return null;}', 'lambda: None')
-        t('function(a){return null;}', 'lambda a: None')
-        t('function(a,b){return b;}', 'lambda a,b: b')
+        t('function(){return null;};', 'lambda: None')
+        t('function(a){return null;};', 'lambda a: None')
+        t('function(a,b){return b;};', 'lambda a,b: b')
         t('function(){'
             'var b=__builtin__.tuple(Array.prototype.slice.call(arguments,0));'
-            'return null;}', 'lambda *b: None')
+            'return null;};', 'lambda *b: None')
 
     def assert_argstats(self, expected, actual):
         actual = actual[16:] # skip the outer module `function'

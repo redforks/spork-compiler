@@ -365,10 +365,10 @@ def _as_builtin_func(expr):
                 if name.id == '__builtin__':
                     return attr.attr
 
-def _is_compatible_bool(expr):
-    def is_JS(expr):
-        return isinstance(expr, j.Js)
+def is_JS(expr):
+    return isinstance(expr, j.Js)
 
+def _is_compatible_bool(expr):
     return expr.expr_type in (j.EXPR_TYPE_BOOL, j.EXPR_TYPE_NUM) or is_JS(expr)
 
 def _do_force_bool(expr):
@@ -684,7 +684,10 @@ class AstVisitor(object):
         return j.File((module_stat,)), self._symbol
 
     def visit_Expr(self, node):
-        return self.visit(node.value)
+        result = self.visit(node.value)
+        if not is_JS(result):
+            result = j.Expr_stat(result)
+        return result
 
     @_cplo
     def visit_Num(self, node):
@@ -896,8 +899,6 @@ class AstVisitor(object):
             js = self.visit(item)
             if not js:
                 continue
-            if j.isexpr(js):
-                js = j.Expr_stat(js)
             result.append(js)
         return result
 
@@ -1084,9 +1085,10 @@ class AstVisitor(object):
         if node.dest:
             raise NotImplementedError, \
                 'print with redirection is not implemented.'
-        return j.Call(j.Attribute(_sf, 'print_'), 
+        result = j.Call(j.Attribute(_sf, 'print_'),
             (j.Array([self.visit(n) for n in node.values]), 
             j.Num(1) if node.nl else j.Num(0)))
+        return j.Expr_stat(result)
 
     @_cplo
     def visit_Raise(self, node):
@@ -1640,6 +1642,7 @@ class AstVisitor(object):
             r = ast.Call()
             r.func, r.args = func, args
             r.keywords = r.starargs = r.kwargs = None
+            r = ast.Expr(r)
             return copy_location(r, node)
 
         def Attribute(value, attr):

@@ -1017,10 +1017,9 @@ class AstVisitor(object):
 
     def visit_BoolOp(self, node):
         t = self.__bool_op_maps[type(node.op)]
-        result = t(self, self.visit(node.values[0]), self.visit(node.values[1]))
-        for n in islice(node.values, 2, None):
-            result = t(self, result, self.visit(n))
-        return result
+        values = iter(node.values)
+        func = lambda last,cur: t(self, last, self.visit(cur))
+        return reduce(func, values, self.visit(next(values)))
 
     __unary_op_maps = {
             ast.Not: j.Logic_not,

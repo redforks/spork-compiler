@@ -53,7 +53,7 @@ function pyjs_copy_attrs(src, dst) {
 }
 
 function pyjs__exception_func_unexpected_keyword(func_name, key) {
-    throw __builtin__.TypeError(String(func_name + "() got an unexpected keyword argument '" + key + "'"));
+    throw $b.TypeError(String(func_name + "() got an unexpected keyword argument '" + key + "'"));
 }
 
 function pyjs_kwargs_call(obj, func, star_args, dstar_args, args)
@@ -132,7 +132,7 @@ function pyjs_kwargs_call(obj, func, star_args, dstar_args, args)
         }
         return func.apply(obj, _args);
     }
-    a = __builtin__.dict(args[0]);
+    a = $b.dict(args[0]);
     a._pyjs_is_kwarg = true;
     _args.push(a);
     res = func.apply(obj, _args);
@@ -211,7 +211,7 @@ function pyjs__class_function(cls_fn, prop, bases) {
                     return cand;
                 }
             }
-            throw __builtin__.TypeError("Cannot create a consistent method resolution order (MRO) for bases " + candidates[0].__name__ + ", "+ candidates[1].__name__);
+            throw $b.TypeError("Cannot create a consistent method resolution order (MRO) for bases " + candidates[0].__name__ + ", "+ candidates[1].__name__);
         }
 
         function remove_cand(seqs, cand) {

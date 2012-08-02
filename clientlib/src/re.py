@@ -29,7 +29,7 @@ while ((arr = r.exec(s)) != null)
   }
 }
 result.push(s.slice(idx, s.length));
-return __builtin__.list(result);
+return $b.list(result);
         ''')
     else:
         return list(JS('s.__split(new RegExp(pattern))'))

@@ -23,7 +23,9 @@ from ._jsast import _safe_js_id
 
 id = j.Name
 
-_sf = id('__builtin__')
+BUILTIN_MODULE = '__builtin__'
+BUILTIN_VAR = j.BUILTIN_VAR
+BUILTIN_VAR_id = id(BUILTIN_VAR)
 _undefined = j.Undefined()
 
 MODULE_VAR = '$m'
@@ -196,7 +198,7 @@ def gen_home_page(libdir, outdir, module, template=None):
             return '../' * module.count('.')
 
         def all_imported_modules():
-            result = ['__builtin__']
+            result = [BUILTIN_MODULE]
             loading = set()
 
             def add_name(name):
@@ -278,11 +280,8 @@ def _dump_members(node):
     print node.__class__.__name__, [n for n in getmembers(node) if not \
         n[0].startswith('_') and n[0] not in ('lineno', 'col_offset')]
 
-def _method_expr(obj, methodname):
-    return j.Attribute(obj, methodname)
-
-def _sf_func(funcname):
-    return _method_expr(_sf, funcname)
+ATTR = j.Attribute
+SF_ATTR = partial(ATTR, BUILTIN_VAR_id)
 
 def _o_bin_op(op, left, right):
     if isinstance(left, j.Num) and isinstance(right, j.Num):
@@ -309,7 +308,7 @@ def _special_bin_op(methodname, op, js_op, left, right):
                 right = right.args[0]
         return js_op(left, right)
 
-    method = _method_expr(left, methodname)
+    method = ATTR(left, methodname)
     args = right,
     return j.Call(method, args)
 
@@ -318,7 +317,7 @@ def _pow(left, right):
     if result is not None:
         return result
 
-    pow = _sf_func('pow')
+    pow = SF_ATTR('pow')
     args = left, right
     return j.Call(pow, args)
 
@@ -339,7 +338,7 @@ def _cmp_op(helper_func, js_op, left, right):
     if left.expr_type == j.EXPR_TYPE_NUM == right.expr_type:
         return js_op(left, right)
 
-    cmp = _sf_func(helper_func)
+    cmp = SF_ATTR(helper_func)
     cmp_args = left, right
     return j.Call(cmp, cmp_args)
 
@@ -361,9 +360,8 @@ def _as_builtin_func(expr):
         attr = expr.val
         if isinstance(attr, j.Attribute):
             name = attr.value
-            if isinstance(name, j.Name):
-                if name.id == '__builtin__':
-                    return attr.attr
+            if j._is_builtin(name):
+                return attr.attr
 
 def is_JS(expr):
     return isinstance(expr, j.Js)
@@ -372,7 +370,7 @@ def _is_compatible_bool(expr):
     return expr.expr_type in (j.EXPR_TYPE_BOOL, j.EXPR_TYPE_NUM) or is_JS(expr)
 
 def _do_force_bool(expr):
-    bool_func = _sf_func('_bool')
+    bool_func = SF_ATTR('_bool')
     return j.Call(bool_func, (expr,))
 
 def _force_bool(expr):
@@ -403,7 +401,7 @@ class Scope(object):
     add = nonef
 
 def _is_builtin_module(module_name):
-    return module_name == '__builtin__'
+    return module_name == BUILTIN_MODULE
 
 class ModuleScope(Scope):
     def __init__(self, visitor, module_name):
@@ -426,18 +424,16 @@ class ModuleScope(Scope):
         if symbol in self.__predefined:
             return self.__predefined[symbol]
         elif symbol in self.__known_globals:
-            if self.module_name == '__builtin__':
-                return j.Attribute(MODULE_VAR_id, symbol)
-            return _sf_func(symbol)
+            return SF_ATTR(symbol)
         else:
             if self.visitor.check_global and isinstance(ctx, (ast.Load, Call)) \
                     and not _is_builtin_module(self.module_name):
-                _get_global_var = _sf_func('_get_global_var')
+                _get_global_var = SF_ATTR('_get_global_var')
                 module_name = MODULE_VAR_id
                 var_name = j.Str(_safe_js_id(symbol))
                 return j.Call(_get_global_var, [module_name, var_name])
             else:
-                return j.Attribute(MODULE_VAR_id, symbol)
+                return ATTR(MODULE_VAR_id, symbol)
 
 class ParentedScope(Scope):
     def __init__(self, parent):
@@ -491,7 +487,7 @@ class ExceptionHandlerScope(ParentedScope):
 class ClassDefScope(ParentedScope):
     def resolve(self, symbol, ctx):
         if symbol in self.locals:
-            return j.Attribute(CLS_DEF_VAR_id, symbol)
+            return ATTR(CLS_DEF_VAR_id, symbol)
         else:
             return self.parent.resolve(symbol, ctx)
 
@@ -602,7 +598,7 @@ class AstVisitor(object):
         stat, context_var = self._unique_var(self.visit(expr))
         result = [stat]
 
-        enter = j.Attribute(context_var, '__enter__')
+        enter = ATTR(context_var, '__enter__')
         enter = j.Call(enter, ())
         if enter_var:
             enter = j.Assign(self.visit(enter_var), enter)
@@ -615,8 +611,8 @@ class AstVisitor(object):
         catch_var = self._unique_var()[1]
         catch_body = []
         catch_body.append(j.AssignStat(exc_var, j.False_()))
-        exit_func = j.Attribute(context_var, '__exit__')
-        exit_call = j.Call(exit_func, [j.Attribute(catch_var,
+        exit_func = ATTR(context_var, '__exit__')
+        exit_call = j.Call(exit_func, [ATTR(catch_var,
             '__class__'), catch_var, j.Null()])
         exit_call = j.Logic_not(exit_call)
         if_exit = j.If(exit_call, [j.Throw(catch_var)], None)
@@ -644,7 +640,7 @@ class AstVisitor(object):
                 names = list(self.__get_import_seq(pkg))
                 result = self.__gen_import_stat(names[:-1], node)
                 e = self.__gen_import_expr(names[-1])
-                e = j.AssignStat(j.Attribute(e, module_name), MODULE_VAR_id)
+                e = j.AssignStat(ATTR(e, module_name), MODULE_VAR_id)
                 result.append(e)
                 return result
             return ()
@@ -655,23 +651,23 @@ class AstVisitor(object):
         stats = []
         if _is_builtin_module(m):
             stats.append(j.Declare_var_stat(MODULE_VAR, j.Struct(())))
-            stats.append(j.AssignStat(j.Attribute(MODULE_VAR_id, '__debug__'),
+            stats.append(j.AssignStat(ATTR(MODULE_VAR_id, '__debug__'),
                 j.True_() if self.debug else j.False_()))
             stats.append(j.AssignStat(
-                j.Attribute(MODULE_VAR_id, '__file__'), 
+                ATTR(MODULE_VAR_id, '__file__'),
                 j.Str(get_module_filename(m, '.py'))))
         else:
-            is_load = j.Call(j.Attribute(_sf, '_module_loaded'), (j.Str(m),))
+            is_load = j.Call(SF_ATTR('_module_loaded'), (j.Str(m),))
             stats.append(j.If(is_load, (j.Return(None),), None))
-            module_obj = j.New_object(j.Attribute(_sf, 'module'), (j.Str(m),
-                j.Str(get_module_filename(m, '.py'))))
+            module_obj = j.New_object(SF_ATTR('module'),
+                    (j.Str(m), j.Str(get_module_filename(m, '.py'))))
             stats.append(j.Declare_var_stat(MODULE_VAR, module_obj))
             stats.extend(import_parent_packages(m))
 
         stats.extend(self._visit_stats(node.body))
         if self.srcmap:
             stats.append(j.AssignStat(
-                j.Attribute(MODULE_VAR_id, '__srcmap__'),
+                ATTR(MODULE_VAR_id, '__srcmap__'),
                 j.SrcMap()))
         vars = [IMPORT_TMP_VAR]
         vars.extend(self.scope.locals)
@@ -702,7 +698,7 @@ class AstVisitor(object):
         return j.Str(node.s)
 
     def _visit_list_tuple(self, jstype, node):
-        type = id('__builtin__.' + jstype)
+        type = SF_ATTR(jstype)
         args = [self.visit(n) for n in node.elts]
         return j.Call(type, (j.Array(args),))
 
@@ -719,7 +715,7 @@ class AstVisitor(object):
         def visit_item(p):
             return j.Array([self.visit(n) for n in p])
 
-        v = j.Attribute(_sf, 'dict')
+        v = SF_ATTR('dict')
         arr = [visit_item(n) for n in izip(node.keys, node.values)]
         return j.Call(v, (j.Array(arr),))
 
@@ -734,11 +730,9 @@ class AstVisitor(object):
         return j.AssignStat(var, initval), var
 
     def _do_assign(self, targets, value):
-        attr = j.Attribute
-
         def do_subscript(target, value):
             v, slice = target.value, target.slice
-            result = j.Expr_stat(j.Call(attr(self.visit(v), '__setitem__'),
+            result = j.Expr_stat(j.Call(ATTR(self.visit(v), '__setitem__'),
                     [self.visit(slice), value]))
             yield _clo(result, target)
 
@@ -751,21 +745,21 @@ class AstVisitor(object):
         def do_tuple(target, value):
             n = j.Num
             for idx, item in enumerate(target.elts):
-                right = j.Call(attr(value, '__fastgetitem__'), (n(idx),))
+                right = j.Call(ATTR(value, '__fastgetitem__'), (n(idx),))
                 yield _clo(j.AssignStat(self.visit(item), right), t)
             if self.debug:
-                cond_expr = j.Attribute(value, '__len__')
+                cond_expr = ATTR(value, '__len__')
                 cond_expr = j.Call(cond_expr, ())
                 right = j.Num(len(target.elts))
                 cond_expr = j.Not_identical(cond_expr, right)
 
                 msg = j.Str('too many values to unpack')
-                raise_stat = j.Throw(j.Call(_sf_func('ValueError'), (msg,)))
+                raise_stat = j.Throw(j.Call(SF_ATTR('ValueError'), (msg,)))
                 yield j.If(cond_expr, (raise_stat,), None)
 
         def do_attribute(target, value):
             val, attr = target.value, target.attr
-            result = j.Call(j.Attribute(_sf, '_setattr'), [
+            result = j.Call(SF_ATTR('_setattr'), [
                     self.visit(val), j.Str(attr), value])
             yield _clo(j.Expr_stat(result), target)
 
@@ -799,18 +793,17 @@ class AstVisitor(object):
         return self._do_assign(node.targets, value)
 
     def _do_getattr(self, expr, attrname):
-        return j.Call(j.Attribute(_sf, '_getattr'), [
-            self.visit(expr), j.Str(attrname)])
+        return j.Call(SF_ATTR('_getattr'), [self.visit(expr), j.Str(attrname)])
 
     @_cplo
     def visit_Attribute(self, node):
         if isinstance(node.ctx, ast.Load):
             return self._do_getattr(node.value, node.attr)
-        return j.Attribute(self.visit(node.value), node.attr)
+        return ATTR(self.visit(node.value), node.attr)
 
     @_cplo
     def visit_Subscript(self, node):
-        v = j.Attribute(self.visit(node.value), '__getitem__')
+        v = ATTR(self.visit(node.value), '__getitem__')
         return j.Call(v, (self.visit(node.slice),))
 
     def visit_Index(self, node):
@@ -820,7 +813,7 @@ class AstVisitor(object):
         step = node.step
         if not step:
             step = ast.Num(1)
-        return j.Call(j.Attribute(_sf, 'slice'), 
+        return j.Call(SF_ATTR('slice'),
                 [self.visit(node.lower), self.visit(node.upper),
                     self.visit(step)])
 
@@ -928,12 +921,12 @@ class AstVisitor(object):
         if not self.debug:
             return j.noneast
         test, msg = node.test, node.msg
-        call = j.Call(j.Attribute(_sf, '_assert'), [self.visit(test),
+        call = j.Call(SF_ATTR('_assert'), [self.visit(test),
             self.visit(msg)])
         return j.Expr_stat(call)
 
     def __in(left, right):
-        return j.Call(j.Attribute(right, '__contains__'), (left,))
+        return j.Call(ATTR(right, '__contains__'), (left,))
 
     __compare_op_maps = {
             ast.Is: j.Identical,
@@ -1026,7 +1019,7 @@ class AstVisitor(object):
     __unary_op_maps = {
             ast.Not: j.Logic_not,
             ast.Invert: j.Bit_inv,
-            ast.USub: lambda o: j.Call(j.Attribute(o, '__neg__'), ()),
+            ast.USub: lambda o: j.Call(ATTR(o, '__neg__'), ()),
             ast.UAdd: j.Unary_add,
         }
 
@@ -1046,8 +1039,7 @@ class AstVisitor(object):
 
     @_cplo
     def visit_Repr(self, node):
-        return j.Call(j.Attribute(_sf, 'repr'),
-                (self.visit(node.value),))
+        return j.Call(SF_ATTR('repr'), (self.visit(node.value),))
 
     def __pow_assign(left, right):
         return j.Assign(left, _pow(left, right))
@@ -1068,11 +1060,11 @@ class AstVisitor(object):
         for t in targets:
             if isinstance(t, ast.Subscript):
                 idx = self.visit(t.slice)
-                call = j.Call(j.Attribute(self.visit(t.value),
+                call = j.Call(ATTR(self.visit(t.value),
                     '__delitem__'), [idx])
                 result.append(_clo(j.Expr_stat(call), t))
             elif isinstance(t, ast.Attribute):
-                call = j.Call(j.Attribute(_sf, 'delattr'),
+                call = j.Call(SF_ATTR('delattr'),
                         [self.visit(t.value), j.Str(t.attr)])
                 call = j.Expr_stat(call)
                 result.append(_clo(call, t))
@@ -1088,7 +1080,7 @@ class AstVisitor(object):
         if node.dest:
             raise NotImplementedError, \
                 'print with redirection is not implemented.'
-        result = j.Call(j.Attribute(_sf, 'print_'),
+        result = j.Call(SF_ATTR('print_'),
             (j.Array([self.visit(n) for n in node.values]), 
             j.Num(1) if node.nl else j.Num(0)))
         return j.Expr_stat(result)
@@ -1132,7 +1124,7 @@ class AstVisitor(object):
             def gen_check_js(funcname, op, arg_count, adj):
                 s_arg_count = str(arg_count)
                 return ('if (arguments.length' + op + s_arg_count + ')'
-                    "{\n  throw __builtin__.TypeError("
+                    "{\n  throw " + BUILTIN_VAR + ".TypeError("
                     "'"+funcname+"() takes " + adj + ' ' + s_arg_count +
                     " arguments ('+arguments.length+' given)');\n}\n")
 
@@ -1168,49 +1160,45 @@ class AstVisitor(object):
             start = len(args)
             arguments = id('arguments')
 
-            attr = j.Attribute
-
-            slice = attr(attr(attr(id('Array'), 'prototype'), 'slice'), 'call')
+            slice = ATTR(ATTR(ATTR(id('Array'), 'prototype'), 'slice'), 'call')
             slice_args = [arguments, j.Num(start)]
             if has_kwarg:
-                slice_args.append(j.Sub(j.Attribute(arguments, 'length'),
+                slice_args.append(j.Sub(ATTR(arguments, 'length'),
                     j.Num(1)))
-            return j.Declare_var_stat(name, j.Call(j.Attribute(_sf, 'tuple'), [
+            return j.Declare_var_stat(name, j.Call(SF_ATTR('tuple'), [
                     j.Call(slice, slice_args)
                 ])),
 
         def prepare_kwarg(name, vararg):
             var_arguments = id('arguments')
-            arguments_length = j.Attribute(var_arguments, 'length')
+            arguments_length = ATTR(var_arguments, 'length')
             namevar = id(name)
             yield j.Declare_var_stat(name, 
                 j.Conditional_op(j.Gt(arguments_length, j.Num(len(args))),
                     j.Subscript(var_arguments, 
                         j.Sub(arguments_length, j.Num(1))),
-                    j.Call(j.Attribute(_sf, '__empty_kwarg'), [])))
+                    j.Call(SF_ATTR('__empty_kwarg'), [])))
 
             if vararg:
                 if_body = (
                     j.Expr_stat(j.Call(
-                        j.Attribute(j.Attribute(id(vararg), 'l'), 'push'), 
+                        ATTR(ATTR(id(vararg), 'l'), 'push'),
                         [namevar])),
-                    j.AssignStat(namevar, j.Call(j.Attribute(_sf,
-                        '__empty_kwarg'), ()))
+                    j.AssignStat(namevar, j.Call(SF_ATTR('__empty_kwarg'), ()))
                 )
                 yield j.If(
-                    j.Identical(j.Attribute(namevar, '_pyjs_is_kwarg'),
+                    j.Identical(ATTR(namevar, '_pyjs_is_kwarg'),
                         _undefined), if_body, None)
 
             if args:
                 kwargvar = id(name)
                 body = [j.AssignStat(kwargvar,
-                    j.Call(j.Attribute(_sf, 'dict'), (j.Struct(()),)))]
+                    j.Call(SF_ATTR('dict'), (j.Struct(()),)))]
                 else_ = None
                 for arg in args:
                     argvar = self.visit(arg)
                     cond = j.Eq(j.Call(
-                        j.Attribute(_sf, 'get_pyjs_classtype'),
-                            (argvar,)), j.Str('dict'))
+                        SF_ATTR('get_pyjs_classtype'), (argvar,)), j.Str('dict'))
                     else_ = [j.If(_is_not_inited(argvar), (j.If(cond, (
                         j.AssignStat(kwargvar, argvar),
                         j.AssignStat(argvar, 
@@ -1276,16 +1264,16 @@ class AstVisitor(object):
                 j._safe_js_id(node.name) if self.debug else None)
         funcvar = self.scope.parent.resolve(node.name, getattr(node, 'ctx',
             None))
-        j_as, j_attr = j.AssignStat, j.Attribute
+        j_as = j.AssignStat
         funcdef = j_as(funcvar, f)
 
-        assign_name = j_as(j_attr(funcvar, '__name__'),
+        assign_name = j_as(ATTR(funcvar, '__name__'),
                 j.Str(j._safe_js_id(node.name)))
 
-        assign_args = j_as(j_attr(funcvar, '__args__'),
+        assign_args = j_as(ATTR(funcvar, '__args__'),
                     self.build_js_args(node.args))
 
-        assign_bind_type = j_as(j_attr(funcvar, '__bind_type__'), j.Num(0))
+        assign_bind_type = j_as(ATTR(funcvar, '__bind_type__'), j.Num(0))
         return [_clo(n, node) for n in (
             funcdef, assign_name, assign_args, assign_bind_type
                 )]
@@ -1315,7 +1303,7 @@ class AstVisitor(object):
                 raise SporkError("lack `cls' arguments.")
             thisvar = j.This()
             arg = args[0]
-            return [j.Declare_var_stat(arg.id, j.Attribute(thisvar,
+            return [j.Declare_var_stat(arg.id, ATTR(thisvar,
                 'prototype'))]
 
         def do_normal(args):
@@ -1368,8 +1356,7 @@ class AstVisitor(object):
             for decor in decorator_list:
                 result = j.Call(self.visit(decor), [result])
 
-        result = j.AssignStat(j.Attribute(CLS_DEF_VAR_id, 
-            name), result)
+        result = j.AssignStat(ATTR(CLS_DEF_VAR_id, name), result)
         return _clo(result, node)
 
     @_cplo
@@ -1410,16 +1397,16 @@ class AstVisitor(object):
             return None
 
         def as_normal():
-            right = j.Call(j.Attribute(self.visit(iter), '__iter__'), ())
+            right = j.Call(ATTR(self.visit(iter), '__iter__'), ())
             itervardeclare, itervar = self._unique_var(right)
 
-            right = j.Call(j.Attribute(itervar, 'next'), ())
+            right = j.Call(ATTR(itervar, 'next'), ())
             stats = self._do_assign([target], right)
             stats.extend(self._visit_stats(body))
             w = j.While(j.True_(),(stats,))
             errorvar = id(self._unique_name())
             catch = j.TryHandler(errorvar, (
-                j.If(j.Not_identical(j.Attribute(errorvar, '__name__'),
+                j.If(j.Not_identical(ATTR(errorvar, '__name__'),
                    j.Str('StopIteration')),
                 (j.Throw(errorvar),), None),))
             trystat = j.Try((w,), catch)
@@ -1441,8 +1428,8 @@ class AstVisitor(object):
         with self._push_scope(ExceptionHandlerScope(self.scope, errvar)):
             errvar = id(errvar)
             stats = []
-            stats.append(j.AssignStat(errvar, j.Call(j.Attribute(_sf,
-                '_errorMapping'), (errvar,))))
+            stats.append(j.AssignStat(errvar,
+                j.Call(SF_ATTR('_errorMapping'), (errvar,))))
 
             handlers, body, orelse = node.handlers, node.body, node.orelse
             if orelse:
@@ -1469,8 +1456,7 @@ class AstVisitor(object):
     def _do_ExceptHandler(self, node, errvar):
         body, name, type = node.body, node.name, node.type
         if type:
-            cond = j.Call(j.Attribute(_sf, 'isinstance'), [errvar,
-                self.visit(type)])
+            cond = j.Call(SF_ATTR('isinstance'), [errvar, self.visit(type)])
             ifstats = []
             if name:
                 ifstats.append(j.AssignStat(self.visit(name), errvar))
@@ -1569,7 +1555,7 @@ class AstVisitor(object):
 
     def __gen_import_expr(self, module_name):
         self._modules_imported.add(module_name)
-        return j.Call(j.Attribute(_sf, 'import_'), [j.Str(module_name)])
+        return j.Call(SF_ATTR('import_'), [j.Str(module_name)])
 
     def __gen_import_stat(self, module_names, node=None):
         def do_gen(module_name):
@@ -1610,19 +1596,19 @@ class AstVisitor(object):
     def visit_ImportFrom(self, node):
         def gen_import_from_expr(module_expr, name, asname):
             if name == '*':
-                result = j.Call(j.Attribute(_sf, '_import_all_from_module'),[
+                result = j.Call(SF_ATTR('_import_all_from_module'),[
                         MODULE_VAR_id,
                         module_expr
                     ])
             else:
                 left = self.scope.resolve(asname or name, None)
                 if self.debug:
-                    right = j.Call(j.Attribute(_sf, '_valid_symbol'), [
+                    right = j.Call(SF_ATTR('_valid_symbol'), [
                             j.Str(module), j.Str(name),
-                            j.Attribute(module_expr, name)
+                            ATTR(module_expr, name)
                         ])
                 else:
-                    right = j.Attribute(module_expr, name)
+                    right = ATTR(module_expr, name)
                 result = j.Assign(left, right)
             result = j.Expr_stat(result)
             _clo(result, node)
@@ -1702,7 +1688,7 @@ class AstVisitor(object):
             resultvar = self._unique_var()[1]
             stats = []
             stats.append(j.AssignStat(id(resultvar.id), 
-                j.Call(j.Attribute(_sf, 'list'), ())))
+                j.Call(SF_ATTR('list'), ())))
             body = Call(Attribute(Name(resultvar.id), 'append'), (elt,))
             for generator in reversed(generators):
                 check_one_target_var(generator)
@@ -1749,7 +1735,7 @@ class AstVisitor(object):
             if isinstance(target, ast.Tuple):
                 msg = 'comprehension with more than 1 vars is not supported'
                 raise NotImplementedError(msg)
-            comp_expr = _method_expr(_sf, '_comp_expr')
+            comp_expr = SF_ATTR('_comp_expr')
             iter_js = self.visit(iter)
             select_js = self.visit(select_func(target, elt))
             if_js = self.visit(if_func(target, ifs[0])) if ifs else j.Null()

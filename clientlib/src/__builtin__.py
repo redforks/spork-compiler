@@ -8,7 +8,7 @@ else:
     import_js('jquery-1.7.1.min.js')
     import_js('core.min.js')
 
-JS('__builtin__=$m;\n')
+JS('$b=$m;\n')
 
 @no_arg_check
 def _get_global_var(module, name):
@@ -58,7 +58,7 @@ def filter(func, iterable):
         var r = iterable.l.filter(function(x, i, arr) {
             return func(x);
         });
-        return __builtin__.list(r);
+        return $m.list(r);
     }
     ''')
     result = []
@@ -110,7 +110,7 @@ def map(func, iterable):
     JS('''
     if (iterable.l) {
         var l = iterable.l.map(function(x, i, arr) {return func(x);});
-        return __builtin__.list(l);
+        return $m.list(l);
     }
     ''')
     result = []
@@ -274,7 +274,7 @@ def print_(objs, newline):
         if(s !== "") {
             s += " ";
         }
-        s += __builtin__.str(objs[i]);
+        s += $m.str(objs[i]);
     }
     if (newline) {
         s+='\n';
@@ -661,7 +661,7 @@ def __lt(a, b):
         return a.__lt__(b);
     }
     ''')
-    return JS('__builtin__.cmp(a, b) < 0')
+    return JS('$m.cmp(a, b) < 0')
 
 @no_arg_check
 def __le(a, b):
@@ -673,7 +673,7 @@ def __le(a, b):
         return a.__le__(b);
     }
     ''')
-    return JS('__builtin__.cmp(a, b) <= 0')
+    return JS('$m.cmp(a, b) <= 0')
 
 @no_arg_check
 def __gt(a, b):
@@ -685,7 +685,7 @@ def __gt(a, b):
         return a.__gt__(b);
     }
     ''')
-    return JS('__builtin__.cmp(a, b) > 0')
+    return JS('$m.cmp(a, b) > 0')
 
 @no_arg_check
 def __ge(a, b):
@@ -697,7 +697,7 @@ def __ge(a, b):
         return a.__ge__(b);
     }
     ''')
-    return JS('__builtin__.cmp(a, b) >= 0')
+    return JS('$m.cmp(a, b) >= 0')
 
 def isObject(a):
     t = JS('typeof a')
@@ -713,7 +713,7 @@ def isNumber(a):
     return JS('typeof a === "number"')
 
 def isIteratable(a):
-    return JS("__builtin__.isString(a) || (__builtin__.isObject(a) && a.__iter__)")
+    return JS("$m.isString(a) || ($m.isObject(a) && a.__iter__)")
 
 def isString(a):
     return JS("typeof a === 'string'")
@@ -729,7 +729,7 @@ def hasattr(obj, name):
     if ((obj === null) || (obj === undefined)) {
         return false;
     }
-    $name$ = __builtin__._safe_id($name$);
+    $name$ = $m._safe_id($name$);
     if (obj[$name$] !== undefined) {
         return true;
     }
@@ -738,8 +738,8 @@ def hasattr(obj, name):
             obj.__getattr__($name$);
             return true;
         } catch(e) {
-            e = __builtin__._errorMapping(e);
-            if (__builtin__.isinstance(e, __builtin__.AttributeError)) {
+            e = $m._errorMapping(e);
+            if ($m.isinstance(e, $m.AttributeError)) {
                 return false;
             } else {
                 throw e;
@@ -773,7 +773,7 @@ _js_keywords= JS('''{
 
 def _safe_id(id):
     JS('''
-    if (__builtin__._js_keywords.hasOwnProperty(id)) {
+    if ($m._js_keywords.hasOwnProperty(id)) {
         return '$' + id + '$';
     }
     return id;
@@ -789,7 +789,7 @@ def _getattr(obj, name, default_value):
         if __debug__:
             JS('''
             if (result && result.__bind_type__ === 1 && obj.__is_instance__ === false) {
-                throw __builtin__.NotImplementedError(
+                throw $m.NotImplementedError(
                     'Not support get unbound function from class');
             }
             ''')
@@ -804,7 +804,7 @@ def _getattr(obj, name, default_value):
                 try {
                     return obj.__getattr__($name$);
                 } catch (e) {
-                    if (__builtin__.isinstance(e, __builtin__.AttributeError)) {
+                    if ($m.isinstance(e, $m.AttributeError)) {
                         return default_value;
                     }
                     throw e;
@@ -812,8 +812,8 @@ def _getattr(obj, name, default_value):
             }
         }
         if (default_value === undefined) {
-            throw __builtin__.AttributeError('can not found attr ' + $name$ + 
-                ' on ' + __builtin__.repr(obj));
+            throw $m.AttributeError('can not found attr ' + $name$ +
+                ' on ' + $m.repr(obj));
         } else {
             return default_value;
         }
@@ -826,7 +826,7 @@ def _getattr(obj, name, default_value):
         return result;
     }
     if (obj.__is_instance__ === false) {
-        throw __builtin__.NotImplementedError(
+        throw $m.NotImplementedError(
             'Not support get unbound function from class')
     }
     """)
@@ -842,9 +842,9 @@ def getattr(obj, name, default_value=NotImplemented):
 @no_arg_check
 def _setattr(obj, name, value):
     JS('''
-    $name$ = __builtin__._safe_id($name$);
+    $name$ = $m._safe_id($name$);
     if (!obj) {
-        throw __builtin__.AttributeError("'NoneType' object has no attribute '" + $name$ + "'");
+        throw $m.AttributeError("'NoneType' object has no attribute '" + $name$ + "'");
     }
 
     if (obj.__is_instance__ && obj.__setattr__) {
@@ -859,16 +859,16 @@ def setattr(obj, name, value):
 
 def delattr(obj, name):
     JS('''
-    $name$ = __builtin__._safe_id($name$);
+    $name$ = $m._safe_id($name$);
     if (!obj) {
-        throw __builtin__.AttributeError("'NoneType' object has no attribute '" + $name$ + "'");
+        throw $m.AttributeError("'NoneType' object has no attribute '" + $name$ + "'");
     }
     if (obj.__delattr__) {
         obj.__delattr__($name$);
     } else {
         var result = obj[$name$];
         if (!result || typeof(result) === "function") {
-            throw __builtin__.AttributeError($name$);
+            throw $m.AttributeError($name$);
         }
 
         delete obj[$name$];
@@ -877,7 +877,7 @@ def delattr(obj, name):
 
 def dir(obj):
     JS("""
-    return __builtin__.list(Object.keys(obj).filter(function(val, idx, arr) {
+    return $m.list(Object.keys(obj).filter(function(val, idx, arr) {
         return obj.hasOwnProperty(val);
     }));
     """)
@@ -921,7 +921,7 @@ def all(iterable):
     JS('''
     if (iterable.l !== undefined) {
         for (var i=0, l=iterable.l, len=l.length; i < len; i++) {
-            if (!__builtin__._bool(l[i])) {
+            if (!$m._bool(l[i])) {
                 return false;
             }
         }
@@ -937,7 +937,7 @@ def any(iterable):
     JS('''
     if (iterable.l !== undefined) {
         for (var i=0, l=iterable.l, len=l.length; i < len; i++) {
-            if (__builtin__._bool(l[i])) {
+            if ($m._bool(l[i])) {
                 return true;
             }
         }
@@ -986,7 +986,7 @@ def hash(obj):
         obj.constructor === Date) {
         return obj;
     }
-    obj.$H = ++__builtin__.next_hash_id;
+    obj.$H = ++$m.next_hash_id;
     """)
     return JS('obj.$H')
 
@@ -1070,12 +1070,12 @@ def issubclass(class_, classinfo):
 def enumerate(sequence):
     JS('''
     if (sequence.l) {
-        var tuple = __builtin__.tuple, arr = sequence.l, length = arr.length;
+        var tuple = $m.tuple, arr = sequence.l, length = arr.length;
         result = Array(length);
         for (var i=0; i<length; i ++) {
             result[i] = tuple([i, arr[i]]);
         }
-        return __builtin__.list(result);
+        return $m.list(result);
     }
     ''')
     result = []
@@ -1121,7 +1121,7 @@ class list(object):
             Array.prototype.push.apply(this.l, data);
         } else if (data.l) {
             Array.prototype.push.apply(this.l, data.l);
-        } else if (__builtin__.isIteratable(data)) {
+        } else if ($m.isIteratable(data)) {
             var iter=data.__iter__();
             var i=this.l.length;
             try {
@@ -1291,7 +1291,7 @@ class list(object):
         return JS("""{
             'next': function() {
                 if (i >= l.length) {
-                    throw __builtin__.StopIteration;
+                    throw $m.StopIteration;
                 }
                 return l[i++];
             },
@@ -1335,7 +1335,7 @@ class list(object):
         s = '['
         JS("""
         for (var i=0; i < self.l.length; i++) {
-            s += __builtin__.repr(self.l[i]);
+            s += $m.repr(self.l[i]);
             if (i < self.l.length - 1) {
                 s += ", ";
             }
@@ -1367,7 +1367,7 @@ class tuple(object):
             this.l = data.slice(0);
         } else if (data.l) {
             this.l = data.l.slice(0);
-        } else if (__builtin__.isIteratable(data)) {
+        } else if ($m.isIteratable(data)) {
             this.l = [];
             var i = 0;
             var iter=data.__iter__();
@@ -1485,7 +1485,7 @@ class tuple(object):
         return JS("""{
             'next': function() {
                 if (i >= l.length) {
-                    throw __builtin__.StopIteration;
+                    throw $m.StopIteration;
                 }
                 return l[i++];
             },
@@ -1508,7 +1508,7 @@ class tuple(object):
         s = "("
         JS("""
         for (var i=0; i < self.l.length; i++) {
-            s += __builtin__.repr(self.l[i]);
+            s += $m.repr(self.l[i]);
             if (i < self.l.length - 1) {
                 s += ", ";
             }
@@ -1542,7 +1542,7 @@ class dict(object):
                     this.__setitem__(item[0], item[1]);
                 }
             }
-        } else if (__builtin__.isIteratable(data)) {
+        } else if ($m.isIteratable(data)) {
             var iter=data.__iter__();
             try {
                 while (true) {
@@ -1556,7 +1556,7 @@ class dict(object):
                 }
             }
         }
-        else if (__builtin__.isObject(data)) {
+        else if ($m.isObject(data)) {
             for (var key in data) {
                 if (data.hasOwnProperty(key)) {
                     this.__setitem__(key, data[key]);
@@ -1578,7 +1578,7 @@ class dict(object):
 
     def __setitem__(self, key, value):
         JS("""
-        var sKey = __builtin__.hash(key);
+        var sKey = $m.hash(key);
         this.d[sKey]=[key, value];
         """)
 
@@ -1638,7 +1638,7 @@ class dict(object):
     def __delitem__(self, key):
         len_before = len(self)
         JS("""
-        var sKey = __builtin__.hash(key);
+        var sKey = $m.hash(key);
         delete this.d[sKey];
         """)
         if len_before == len(self):
@@ -1675,7 +1675,7 @@ class dict(object):
         JS("""
         for (var key in this.d) {
             if (this.d.hasOwnProperty(key)) {
-                items.append(__builtin__.tuple(this.d[key]));
+                items.append($m.tuple(this.d[key]));
             }
         }
         """)
@@ -1755,7 +1755,7 @@ class dict(object):
         JS("""
         for (var i=0; i<keys.length; i++) {
             var v = self.d[keys[i]];
-            s += __builtin__.repr(v[0]) + ": " + __builtin__.repr(v[1]);
+            s += $m.repr(v[0]) + ": " + $m.repr(v[1]);
             if (i < keys.length-1) {
                 s += ", ";
             }
@@ -1977,7 +1977,7 @@ def repr(x):
 
     // If we get here, x is an object.  See if it's a Pyjamas class.
 
-    if (!__builtin__.hasattr(x, "__init__")) {
+    if (!$m.hasattr(x, "__init__")) {
        return "<" + x.toString() + ">";
     }
 
@@ -2018,7 +2018,7 @@ def range(start, stop=None, step=1):
       result[index] = start;
       start += step;
     }
-    return __builtin__.list(result);
+    return $m.list(result);
     ''')
 
 def _rev_range(start, stop, step):
@@ -2149,7 +2149,7 @@ String.prototype.__mul__ = function(other) {
 };
 
 String.prototype.__mod__ = function(other) {
-	return __builtin__.sprintf(this, other);
+	return $m.sprintf(this, other);
 };
 
 String.prototype.__len__ = function() {
@@ -2158,7 +2158,7 @@ String.prototype.__len__ = function() {
 
 $m.String_find = function(sub, start, end) {
     var pos=this.indexOf(sub, start);
-    if (__builtin__.isUndefined(end)) {
+    if ($m.isUndefined(end)) {
         return pos;
     }
 
@@ -2171,8 +2171,8 @@ $m.String_find = function(sub, start, end) {
 $m.String_join = function(data) {
     if (Array.isArray(data)) {
         return data.join(this);
-    } else if (__builtin__.isIteratable(data)) {
-        var str = __builtin__.str;
+    } else if ($m.isIteratable(data)) {
+        var str = $m.str;
         var iter = data.__iter__();
         var arr = [];
         try {
@@ -2186,7 +2186,7 @@ $m.String_join = function(data) {
         }
         return arr.join(this);
     } else {
-        throw new __builtin__.TypeError();
+        throw new $m.TypeError();
     }
 };
 
@@ -2200,10 +2200,10 @@ $m.String_replace = function(old, replace, count) {
     var new_str="";
     var pos=0;
 
-    if (!__builtin__.isString(old)) {
+    if (!$m.isString(old)) {
         return this.replace(old, replace);
     }
-    if (!__builtin__.isUndefined(count)) {
+    if (!$m.isUndefined(count)) {
         do_max=true;
     }
 
@@ -2228,13 +2228,13 @@ $m.String_replace = function(old, replace, count) {
 };
 
 $m.String_split = function(sep, maxsplit) {
-    var items=__builtin__.list();
+    var items=$m.list();
     var do_max=false;
     var subject=this;
     var start=0;
     var pos=0;
 
-    if (sep === undefined || __builtin__.isNull(sep)) {
+    if (sep === undefined || $m.isNull(sep)) {
         sep=" ";
         subject=subject.strip();
         subject=subject.replace(/\s+/g, sep);
@@ -2277,7 +2277,7 @@ $m.String___iter__ = function() {
     return {
         'next': function() {
             if (i >= s.length) {
-                throw __builtin__.StopIteration;
+                throw $m.StopIteration;
             }
             return s.substring(i++, i, 1);
         },
@@ -2312,10 +2312,10 @@ $m.String_rstrip = function(chars) {
 
 $m.String_startswith = function(prefix, start, end) {
     // FIXME: accept tuples as suffix (since 2.5)
-    if (__builtin__.isUndefined(start)) {
+    if ($m.isUndefined(start)) {
         start = 0;
     }
-    if (__builtin__.isUndefined(end)) {
+    if ($m.isUndefined(end)) {
         end = this.length;
     }
 
@@ -2327,10 +2327,10 @@ $m.String_startswith = function(prefix, start, end) {
 
 $m.String_endswith = function(suffix, start, end) {
     // FIXME: accept tuples as suffix (since 2.5)
-    if (__builtin__.isUndefined(start)) {
+    if ($m.isUndefined(start)) {
         start = 0;
     }
-    if (__builtin__.isUndefined(end)) {
+    if ($m.isUndefined(end)) {
         end = this.length;
     }
 
@@ -2343,13 +2343,13 @@ $m.String_endswith = function(suffix, start, end) {
 $m.String_ljust = function(width, fillchar) {
     if (typeof(width) !== 'number' ||
         parseInt(width, 10) !== width) {
-        throw (__builtin__.TypeError("an integer is required"));
+        throw ($m.TypeError("an integer is required"));
     }
-    if (__builtin__.isUndefined(fillchar)) {
+    if ($m.isUndefined(fillchar)) {
         fillchar = ' ';
     }
     if (typeof(fillchar) !== 'string' || fillchar.length !== 1) {
-        throw (__builtin__.TypeError("ljust() argument 2 must be char, not " + typeof(fillchar)));
+        throw ($m.TypeError("ljust() argument 2 must be char, not " + typeof(fillchar)));
     }
     if (this.length >= width) {
         return this.valueOf();
@@ -2358,13 +2358,13 @@ $m.String_ljust = function(width, fillchar) {
 };
 $m.String_rjust = function(width, fillchar) {
     if (typeof(width) !== 'number' || parseInt(width, 10) !== width) {
-        throw (__builtin__.TypeError("an integer is required"));
+        throw ($m.TypeError("an integer is required"));
     }
-    if (__builtin__.isUndefined(fillchar)) {
+    if ($m.isUndefined(fillchar)) {
         fillchar = ' ';
     }
     if (typeof(fillchar) !== 'string' || fillchar.length !== 1) {
-        throw (__builtin__.TypeError("rjust() argument 2 must be char, not " + typeof(fillchar)));
+        throw ($m.TypeError("rjust() argument 2 must be char, not " + typeof(fillchar)));
     }
     if (this.length >= width) {
         return this.valueOf();
@@ -2374,13 +2374,13 @@ $m.String_rjust = function(width, fillchar) {
 
 $m.String_center = function(width, fillchar) {
     if (typeof(width) !== 'number' || parseInt(width, 10) !== width) {
-        throw (__builtin__.TypeError("an integer is required"));
+        throw ($m.TypeError("an integer is required"));
     }
-    if (__builtin__.isUndefined(fillchar)) {
+    if ($m.isUndefined(fillchar)) {
         fillchar = ' ';
     }
     if (typeof(fillchar) !== 'string' || fillchar.length !== 1) {
-        throw (__builtin__.TypeError("center() argument 2 must be char, not " + typeof(fillchar)));
+        throw ($m.TypeError("center() argument 2 must be char, not " + typeof(fillchar)));
     }
     if (this.length >= width) {
         return this.valueOf();
@@ -2591,7 +2591,7 @@ def _get_stack_trace():
         lineno += 1
         if lineno % 2 == 0:
             continue
-        words = JS('__builtin__.list(re.exec(line))')
+        words = JS('$m.list(re.exec(line))')
         if len(words) < 3:
             continue
         result.append(words[1:3])

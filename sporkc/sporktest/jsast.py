@@ -704,7 +704,7 @@ class ExprTypeTest(TestCase):
         self.assert_str(j.Call(j.Attribute(n(0), 'toString'), ()))
         self.assert_bool(j.Call(j.Attribute(n(0), '__contains__'), ()))
 
-        mk_builtin_call = lambda f: j.Call(j.Attribute(j.Name('__builtin__'),
+        mk_builtin_call = lambda f: j.Call(j.Attribute(j.Name(j.BUILTIN_VAR),
             f), ())
         self.assert_num(mk_builtin_call('len'))
         self.assert_num(mk_builtin_call('int'))

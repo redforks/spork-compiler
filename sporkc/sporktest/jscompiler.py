@@ -13,8 +13,8 @@ from spork.io import IOUtil
 import spork.virtual_fs as vir_fs
 
 module_prefix = "var $p%(v)s;" \
-    "if(__builtin__._module_loaded('%(m)s')){return;}"\
-    "var $m=new __builtin__.module('%(m)s','%(f)s.py');"
+    "if($b._module_loaded('%(m)s')){return;}"\
+    "var $m=new $b.module('%(m)s','%(f)s.py');"
 
 class JSCompilerTestBase(sporktest.MyTestCase):
     def setUp(self):
@@ -52,7 +52,7 @@ class JSCompilerTest(JSCompilerTestBase):
         prefix = module_prefix % {
                 'm': module, 'f': module.replace('.', '/'), 'v': vars}
         if '.' in module:
-            prefix += "__builtin__.import_('a').b=$m;" 
+            prefix += "$b.import_('a').b=$m;"
         expected = prefix + expected
         code = '# coding:utf8\n' + code
         self.do_test(expected, code, module, **options)
@@ -99,7 +99,7 @@ class JSCompilerTest(JSCompilerTestBase):
             '$m.b=$t1.__fastgetitem__(0);'
             '$m.c=$t1.__fastgetitem__(1);'
             'if($t1.__len__()!==2){'
-            'throw __builtin__.ValueError('
+            'throw $b.ValueError('
             "'too many values to unpack'"
             ');}',
             'b, c = a', 'a.b', vars=['$t1'])
@@ -127,10 +127,10 @@ class JSCompilerTest(JSCompilerTestBase):
         t('$m.$const$;', 'const')
 
         # as attr getattr / setattr support name translate
-        t("__builtin__._getattr($m.a,'const');", 'a.const')
+        t("$b._getattr($m.a,'const');", 'a.const')
 
         # assign to attr
-        t("__builtin__._setattr($m.a,'const',2);", 'a.const = 2')
+        t("$b._setattr($m.a,'const',2);", 'a.const = 2')
 
         # as local var / as argument
         # as function name
@@ -181,10 +181,10 @@ class JSCompilerTest(JSCompilerTestBase):
     def test_get_global_var(self):
         t = self.t
         t('$m.a;', 'a', check_global=False)
-        t("__builtin__._get_global_var($m,'a');", 'a', check_global=True)
-        t("__builtin__._get_global_var($m,'c')();", 'c()', check_global=True)
+        t("$b._get_global_var($m,'a');", 'a', check_global=True)
+        t("$b._get_global_var($m,'c')();", 'c()', check_global=True)
         t("$m.a=1;", 'a=1', check_global=True)
-        t("__builtin__._get_global_var($m,'$super$');", 'super', 
+        t("$b._get_global_var($m,'$super$');", 'super',
                 check_global=True)
 
         # __builtin__ module does not enable check_global, 
@@ -198,35 +198,35 @@ class JSCompilerTest(JSCompilerTestBase):
 
     def test_package_var(self):
         self.do_test("var $p;"
-            "if(__builtin__._module_loaded('sf.test')){return;}"
-            "var $m=new __builtin__.module('sf.test','sf/test.py');"
-            "__builtin__.import_('sf').test=$m;"
+            "if($b._module_loaded('sf.test')){return;}"
+            "var $m=new $b.module('sf.test','sf/test.py');"
+            "$b.import_('sf').test=$m;"
             '$m.a;',
             'a', module='sf.test')
 
     def test_format_op(self):
         t = self.t
         t("'%s'.__mod__(1);", "'%s' % 1")
-        t("'%s+%s'.__mod__(__builtin__.tuple([1,2]));", "'%s+%s' % (1,2)")
+        t("'%s+%s'.__mod__($b.tuple([1,2]));", "'%s+%s' % (1,2)")
 
     def test_tuple_expr(self):
         t = self.t
-        t('__builtin__.tuple([]);', '()')
-        t("__builtin__.tuple(['a']);", '("a",)')
-        t('__builtin__.tuple([1,2]);', '(1, 2)')
+        t('$b.tuple([]);', '()')
+        t("$b.tuple(['a']);", '("a",)')
+        t('$b.tuple([1,2]);', '(1, 2)')
 
     def test_list_expr(self):
         t = self.t
-        t('__builtin__.list([]);', '[]')
-        t("__builtin__.list(['a']);", '["a",]')
-        t('__builtin__.list([1,2]);', '[1, 2]')
-        t('__builtin__.list([__builtin__.tuple([])]);', '[()]')
+        t('$b.list([]);', '[]')
+        t("$b.list(['a']);", '["a",]')
+        t('$b.list([1,2]);', '[1, 2]')
+        t('$b.list([$b.tuple([])]);', '[()]')
 
     def test_dict_expr(self):
         t = self.t
-        t('__builtin__.dict([]);', '{}')
-        t('__builtin__.dict([[1,2]]);', '{1: 2}')
-        t('__builtin__.dict([[1,2],[3,4]]);', '{1: 2, 3: 4}')
+        t('$b.dict([]);', '{}')
+        t('$b.dict([[1,2]]);', '{1: 2}')
+        t('$b.dict([[1,2],[3,4]]);', '{1: 2, 3: 4}')
 
     def test_assign(self):
         t = self.t
@@ -240,7 +240,7 @@ class JSCompilerTest(JSCompilerTestBase):
     def test_assign_subscription(self):
         t = self.t
         t('$m.s.__setitem__(0,1);', 's[0] = 1')
-        t('$m.s.__setitem__(__builtin__.slice(null,null,1),__builtin__.list([]));',
+        t('$m.s.__setitem__($b.slice(null,null,1),$b.list([]));',
                 's[:] = []')
 
     def test_side_assign(self):
@@ -256,12 +256,12 @@ class JSCompilerTest(JSCompilerTestBase):
         t("$m.a=$m.a.__or__(1);", 'a|=1')
         t("$m.a=$m.a.__xor__(1);", 'a^=1')
         t("$m.a=$m.a.__floordiv__(1);", 'a//=1')
-        t("$m.a=__builtin__.pow($m.a,2);", 'a**=2')
+        t("$m.a=$b.pow($m.a,2);", 'a**=2')
 
     def test_side_assign_attr(self):
         t = self.t
-        setattr = '__builtin__._setattr'
-        getattr = '__builtin__._getattr'
+        setattr = '$b._setattr'
+        getattr = '$b._getattr'
         t(setattr + "($m.c,'b'," + getattr + "($m.c,'b').__add__(3));", 
                 'c.b+=3')
 
@@ -270,12 +270,12 @@ class JSCompilerTest(JSCompilerTestBase):
 
     def test_attribute(self):
         t = self.t
-        t("__builtin__._getattr('','upper');", "''.upper")
-        t("__builtin__._getattr(__builtin__._getattr('','upper'),'length');",
+        t("$b._getattr('','upper');", "''.upper")
+        t("$b._getattr($b._getattr('','upper'),'length');",
                 "''.upper.length")
 
-        t("__builtin__._setattr('','upper',1);", "''.upper=1")
-        t("__builtin__._setattr(__builtin__._getattr('','upper'),'length',1);",
+        t("$b._setattr('','upper',1);", "''.upper=1")
+        t("$b._setattr($b._getattr('','upper'),'length',1);",
                 "''.upper.length=1")
 
     def test_subscriptions(self):
@@ -284,12 +284,12 @@ class JSCompilerTest(JSCompilerTestBase):
 
     def test_slice(self):
         t = self.t
-        t("''.__getitem__(__builtin__.slice(0,1,1));", "''[0:1]")
-        t("''.__getitem__(__builtin__.slice(null,1,1));", "''[:1]")
-        t("''.__getitem__(__builtin__.slice(0,null,1));", "''[0:]")
-        t("''.__getitem__(__builtin__.slice(null,null,1));", "''[:]")
-        t("''.__getitem__(__builtin__.slice(null,null,-1));", "''[::-1]")
-        t("''.__getitem__(__builtin__.slice(0,1,0));", "''[0:1:0]")
+        t("''.__getitem__($b.slice(0,1,1));", "''[0:1]")
+        t("''.__getitem__($b.slice(null,1,1));", "''[:1]")
+        t("''.__getitem__($b.slice(0,null,1));", "''[0:]")
+        t("''.__getitem__($b.slice(null,null,1));", "''[:]")
+        t("''.__getitem__($b.slice(null,null,-1));", "''[::-1]")
+        t("''.__getitem__($b.slice(0,1,0));", "''[0:1:0]")
 
     def test_method_call(self):
         t = self.t
@@ -302,13 +302,13 @@ class JSCompilerTest(JSCompilerTestBase):
                 "''.count(start=1)")
         t("pyjs_kwargs_call('','count',null,null,[{sub:'s',start:1}]);", 
                 "''.count(sub='s',start=1)")
-        t("pyjs_kwargs_call('','count',__builtin__.tuple(['s',1]),null,[{}]);", 
+        t("pyjs_kwargs_call('','count',$b.tuple(['s',1]),null,[{}]);",
                 "''.count(*('s', 1))")
         t("pyjs_kwargs_call('','count',null,"
-                "__builtin__.dict([['sub','s'],['start',1]]),[{}]);", 
+                "$b.dict([['sub','s'],['start',1]]),[{}]);",
                 "''.count(**{'sub':'s', 'start':1,})")
 
-        t("__builtin__._getattr($m.a,'n').f();", 'a.n.f()')
+        t("$b._getattr($m.a,'n').f();", 'a.n.f()')
         t("$m.a.f();", 'a.f()')
 
     def test_function_call(self):
@@ -319,10 +319,10 @@ class JSCompilerTest(JSCompilerTestBase):
         t("pyjs_kwargs_call(t,'int',null,null,[{base:2},'11']);",
                 "int('11',base=2)")
         t("pyjs_kwargs_call(t,'int',"
-                "__builtin__.tuple(['11',2]),null,[{}]);", 
+                "$b.tuple(['11',2]),null,[{}]);",
                 "int(*('11', 2))")
         t("pyjs_kwargs_call(t,'int',null,"
-                "__builtin__.dict([['x','11'],['base',2]]),[{}]);", 
+                "$b.dict([['x','11'],['base',2]]),[{}]);",
                 "int(**{'x':'11', 'base':2})")
 
     def test_nested_function_call(self):
@@ -339,7 +339,7 @@ class JSCompilerTest(JSCompilerTestBase):
         self.do_no_arg_func(
                 'var g;g=function g(){'
                 'var args=(arguments.length>0)?arguments[arguments.length-1]:'
-                '__builtin__.__empty_kwarg();'
+                '$b.__empty_kwarg();'
                 'return null;};'
                 "g.__name__='g';"
                 "g.__args__=[null,'args'];"
@@ -353,15 +353,15 @@ class JSCompilerTest(JSCompilerTestBase):
             '$m.b=$t1.__fastgetitem__(1);'
         t(js, 'a,b=p', debug=False, vars=['$t1'])
         t(js + 'if($t1.__len__()!==2){'
-        'throw __builtin__.ValueError('
+        'throw $b.ValueError('
         "'too many values to unpack');}",
         'a,b=p', debug=True, vars=['$t1'])
 
-        t('$t1=__builtin__.tuple([3,4,5]);'
+        t('$t1=$b.tuple([3,4,5]);'
           '$m.a=$t1.__fastgetitem__(0);$m.b=$t1.__fastgetitem__(1);'
           '$m.c=$t1.__fastgetitem__(2);'
           'if($t1.__len__()!==3){'
-          'throw __builtin__.ValueError('
+          'throw $b.ValueError('
           "'too many values to unpack');}",
           'a,b,c=3,4,5', vars=['$t1'])
 
@@ -378,7 +378,7 @@ class JSCompilerTest(JSCompilerTestBase):
 
     def test_optimize_forced_bool_expr(self):
         # if inner expression is definitely bool expression, do not wrap with 
-        # __builtin__._bool
+        # $b._bool
         t = self.t
         t('if($m.a===null){}', 'if a is None: pass')
         t('if($m.a===1){}', 'if a is 1: pass')
@@ -392,10 +392,10 @@ class JSCompilerTest(JSCompilerTestBase):
         t('if(1>=2){}', 'if 1>=2: pass')
         t('if(1<2){}', 'if 1<2: pass')
         t('if(1<=2){}', 'if 1<=2: pass')
-        t('if(__builtin__.isinstance($m.a,__builtin__.str)){}', 'if isinstance(a, str): pass')
-        t('if(!__builtin__.isinstance($m.a,__builtin__.str)){}', 'if not isinstance(a, str): pass')
-        t('if(__builtin__.hasattr($m.a,__builtin__.str)){}', 'if hasattr(a, str): pass')
-        t('if(!__builtin__.hasattr($m.a,__builtin__.str)){}', 'if not hasattr(a, str): pass')
+        t('if($b.isinstance($m.a,$b.str)){}', 'if isinstance(a, str): pass')
+        t('if(!$b.isinstance($m.a,$b.str)){}', 'if not isinstance(a, str): pass')
+        t('if($b.hasattr($m.a,$b.str)){}', 'if hasattr(a, str): pass')
+        t('if(!$b.hasattr($m.a,$b.str)){}', 'if not hasattr(a, str): pass')
         t('if(!$m.a.__contains__(1)){}', 'if 1 not in a: pass')
         t('if($m.a.__contains__(1)){}', 'if 1 in a: pass')
         t('if(a){}', 'from __spork__ import JS\nif JS("a"): pass')
@@ -406,11 +406,11 @@ class JSCompilerTest(JSCompilerTestBase):
         t('for($m.i=0;$m.i<10;$m.i++){1;}', 'for i in xrange(10): 1')
         t('$t1=$m.a;for($m.i=0;$m.i<$t1;$m.i++){1;}',
                 'for i in xrange(a): 1', vars=['$t1'])
-        t('(function(){var $t1,i,$t2;$t1=__builtin__.list();$t2=$m.a;'
+        t('(function(){var $t1,i,$t2;$t1=$b.list();$t2=$m.a;'
             'for(i=0;i<$t2;i++){'
             '$t1.append(i);'
             '}return $t1;})();', '[i for i in xrange(a)]')
-        t('(function(){var $t1,i;$t1=__builtin__.list();'
+        t('(function(){var $t1,i;$t1=$b.list();'
             'for(i=0;i<10;i++){'
             '$t1.append(i);'
             '}return $t1;})();', '[i for i in range(10)]')
@@ -424,7 +424,7 @@ class JSCompilerTest(JSCompilerTestBase):
         t('(1).__div__($m.a);', '1/a')
         t('(1).__floordiv__($m.a);', '1//a')
         t('(1).__mod__($m.a);', '1%a')
-        t('__builtin__.pow(1,$m.a);', '1**a')
+        t('$b.pow(1,$m.a);', '1**a')
         t('$m.a.__sub__($m.b).__mod__(3);', '(a-b) % 3')
 
     def test_optimize_literal_compute(self):
@@ -443,12 +443,12 @@ class JSCompilerTest(JSCompilerTestBase):
         t = self.t
         t('$m.a===true;', 'a is True')
         t('$m.a!==true;', 'a is not True')
-        t('__builtin__.__gt($m.a,3);', 'a>3')
-        t('__builtin__.__ge($m.a,3);', 'a>=3')
-        t('__builtin__.__lt($m.a,3);', 'a<3')
-        t('__builtin__.__le($m.a,3);', 'a<=3')
-        t('__builtin__.eq($m.a,3);', 'a==3')
-        t('!__builtin__.eq($m.a,3);', 'a!=3')
+        t('$b.__gt($m.a,3);', 'a>3')
+        t('$b.__ge($m.a,3);', 'a>=3')
+        t('$b.__lt($m.a,3);', 'a<3')
+        t('$b.__le($m.a,3);', 'a<=3')
+        t('$b.eq($m.a,3);', 'a==3')
+        t('!$b.eq($m.a,3);', 'a!=3')
         t('$m.a.__contains__($m.b);', 'b in a')
         t('!$m.a.__contains__($m.b);', 'b not in a')
 
@@ -460,11 +460,11 @@ class JSCompilerTest(JSCompilerTestBase):
         t('1!==3;', '1!=3')
 
     def test_chain_cmp(self):
-        self.t('__builtin__.__lt(1,$m.a)&&__builtin__.__lt($m.a,4);', '1<a<4')
-        self.t('(__builtin__.__lt(1,$m.a)&&__builtin__.__lt($m.a,$m.b))&&__builtin__.__lt($m.b,5);',
+        self.t('$b.__lt(1,$m.a)&&$b.__lt($m.a,4);', '1<a<4')
+        self.t('($b.__lt(1,$m.a)&&$b.__lt($m.a,$m.b))&&$b.__lt($m.b,5);',
                 '1<a<b<5')
-        self.t('__builtin__.__lt(1,$m.a)&&__builtin__.__lt($m.a,4);', '1<a<4')
-        self.t('__builtin__.__lt($m.f(),$m.a)&&__builtin__.__lt($m.a,$m.g());', 'f()<a<g()')
+        self.t('$b.__lt(1,$m.a)&&$b.__lt($m.a,4);', '1<a<4')
+        self.t('$b.__lt($m.f(),$m.a)&&$b.__lt($m.a,$m.g());', 'f()<a<g()')
         msg = 'In chain cmp, only literal and variable is allowed in the middle'
         with self.assertRaisesRegexp(NotImplementedError, msg):
             self.t('', '1<foo()<4')
@@ -488,32 +488,32 @@ class JSCompilerTest(JSCompilerTestBase):
 
     def test_optimize_dircet_js_op(self):
         t = self.t
-        t('1+__builtin__.int($m.a);', '1 + int(a)')
-        t('__builtin__.int($m.a)+1;', 'int(a) + 1')
-        t("__builtin__.str($m.a)+'1';", 'str(a) + "1"')
-        t("(__builtin__.str($m.a)+'1')+__builtin__.str($m.b);",
+        t('1+$b.int($m.a);', '1 + int(a)')
+        t('$b.int($m.a)+1;', 'int(a) + 1')
+        t("$b.str($m.a)+'1';", 'str(a) + "1"')
+        t("($b.str($m.a)+'1')+$b.str($m.b);",
                 'str(a) + "1" + str(b)')
 
     def test_optimize_plus_int_str(self):
         t = self.t
         t("1+'a';", "str(1) + 'a'")
         t("'a'+1;", "'a' + str(1)")
-        t("1+__builtin__.str(2);", "str(1) + str(2)")
+        t("1+$b.str(2);", "str(1) + str(2)")
 
     def test_logicop(self):
         t = self.t
         vars=['$t1']
-        t('($t1=$m.a),(__builtin__._bool($t1)?2:$t1);',
+        t('($t1=$m.a),($b._bool($t1)?2:$t1);',
                 'a and 2', vars=vars)
-        t('($t1=$m.a),(__builtin__._bool($t1)?$t1:2);',
+        t('($t1=$m.a),($b._bool($t1)?$t1:2);',
                 'a or 2', vars=vars)
         t('!true;', 'not True')
-        t('!__builtin__._bool($m.a);', 'not a')
-        t('($t2=($t1=$m.a),(__builtin__._bool($t1)?2:$t1)),'
-            '(__builtin__._bool($t2)?3:$t2);',
+        t('!$b._bool($m.a);', 'not a')
+        t('($t2=($t1=$m.a),($b._bool($t1)?2:$t1)),'
+            '($b._bool($t2)?3:$t2);',
                 'a and 2 and 3', vars=['$t1', '$t2'])
-        t('($t2=$m.a),(__builtin__._bool($t2)?$t2:'
-                '(($t1=$m.b),(__builtin__._bool($t1)?3:$t1)));',
+        t('($t2=$m.a),($b._bool($t2)?$t2:'
+                '(($t1=$m.b),($b._bool($t1)?3:$t1)));',
                 'a or b and 3', vars=['$t1', '$t2'])
 
     def test_optimize_logicop(self):
@@ -522,7 +522,7 @@ class JSCompilerTest(JSCompilerTestBase):
         t('true&&2;', 'True and 2')
         t('1||$m.a;', '1 or a')
         t('true||2;', 'True or 2')
-        t('($t1=1&&$m.a),(__builtin__._bool($t1)?$m.c:$t1);',
+        t('($t1=1&&$m.a),($b._bool($t1)?$m.c:$t1);',
             '1 and a and c', vars=['$t1'])
         t('(1&&2)&&$m.c;', '1 and 2 and c')
 
@@ -536,7 +536,7 @@ class JSCompilerTest(JSCompilerTestBase):
     def test_repr_expr(self):
         t = self.t
         t('$m.repr($m.a);', 'repr(a)')
-        t('__builtin__.repr($m.a);', '`a`')
+        t('$b.repr($m.a);', '`a`')
 
     def test_pass(self):
         self.t('', 'pass')
@@ -547,17 +547,17 @@ class JSCompilerTest(JSCompilerTestBase):
 
     def test_del(self):
         self.t("delete $m.a;", 'del a')
-        self.t("__builtin__.delattr($m.a,'c');", 'del a.c')
+        self.t("$b.delattr($m.a,'c');", 'del a.c')
 
         self.t('$m.a.__delitem__(0);', 'del a[0]')
-        self.t('$m.a.__delitem__(__builtin__.slice(2,8,1));', 'del a[2:8]')
+        self.t('$m.a.__delitem__($b.slice(2,8,1));', 'del a[2:8]')
 
         self.do_no_arg_func('var a;a=1;delete a;', 'a=1;del a;')
 
     def test_print(self):
         t = self.t
-        t('__builtin__.print_([1],1);', 'print 1')
-        t('__builtin__.print_([1,$m.a],0);', 'print 1, a,')
+        t('$b.print_([1],1);', 'print 1')
+        t('$b.print_([1,$m.a],0);', 'print 1, a,')
         msg = 'print with redirection is not implemented.'
         with self.assertError(NotImplementedError, msg):
             t('', 'print >>f, 1')
@@ -580,7 +580,7 @@ class JSCompilerTest(JSCompilerTestBase):
         t('function(a){return null;};', 'lambda a: None')
         t('function(a,b){return b;};', 'lambda a,b: b')
         t('function(){'
-            'var b=__builtin__.tuple(Array.prototype.slice.call(arguments,0));'
+            'var b=$b.tuple(Array.prototype.slice.call(arguments,0));'
             'return null;};', 'lambda *b: None')
 
     def assert_argstats(self, expected, actual):
@@ -639,7 +639,7 @@ class JSCompilerTest(JSCompilerTestBase):
         self.t('$m.f=function f(){'
         + self.__js_at_most_arg('f', 1) +
                 'var g=(arguments.length>0)?arguments[arguments.length-1]:'
-                '__builtin__.__empty_kwarg();'
+                '$b.__empty_kwarg();'
                 'return null;};'
                 "$m.f.__name__='f';"
                 "$m.f.__args__=[null,'g'];"
@@ -648,20 +648,20 @@ class JSCompilerTest(JSCompilerTestBase):
 
     def __js_at_least_arg(self, funcname, args):
         return ("if (arguments.length<%s){\n"
-                "  throw __builtin__.TypeError("
+                "  throw $b.TypeError("
                     "'%s() takes at least %s arguments ('"
                     "+arguments.length+' given)');\n}\n") % (args, funcname, args)
 
     def __js_at_most_arg(self, funcname, args):
         return ("if (arguments.length>%s){\n"
-                "  throw __builtin__.TypeError("
+                "  throw $b.TypeError("
                     "'%s() takes at most %s arguments ('"
                     "+arguments.length+' given)');\n}\n") % (args, funcname, args)
 
     def __js_exact_arg(self, funcname, arg_count):
         return (
             "if (arguments.length!==%s){\n"
-                "  throw __builtin__.TypeError("
+                "  throw $b.TypeError("
                     "'%s() takes exactly %s"
                     " arguments ('+arguments.length+' given)');\n}\n" %
             (arg_count, funcname, arg_count))
@@ -719,11 +719,11 @@ class C(object):
             'def a(b):return b')
         t('$m.a=function a(b){'
             'var c,d,$t1;'
-            '$t1=__builtin__.tuple([1,2]);'
+            '$t1=$b.tuple([1,2]);'
             'c=$t1.__fastgetitem__(0);'
             'd=$t1.__fastgetitem__(1);'
             'if($t1.__len__()!==2){'
-            'throw __builtin__.ValueError('
+            'throw $b.ValueError('
             "'too many values to unpack'"
             ');}'
             'return null;};'
@@ -765,12 +765,12 @@ class C(object):
     def test_func_varargs(self):
         t = self.t
         t('$m.a=function a(){'
-            'var b=__builtin__.tuple(Array.prototype.slice.call(arguments,0));'
+            'var b=$b.tuple(Array.prototype.slice.call(arguments,0));'
             "return null;};$m.a.__name__='a';$m.a.__args__=['b',null];"
             '$m.a.__bind_type__=0;', 
             'def a(*b): return None')
         t('$m.a=function a(b){'
-            'var c=__builtin__.tuple(Array.prototype.slice.call(arguments,1));'
+            'var c=$b.tuple(Array.prototype.slice.call(arguments,1));'
             'c=c.__getitem__(0);'
             "return null;};$m.a.__name__='a';$m.a.__args__=['c',null,['b']];"
             '$m.a.__bind_type__=0;', 
@@ -780,27 +780,27 @@ class C(object):
         t = self.t
         t('$m.f=function f(){'
             'var b=(arguments.length>0)?arguments[arguments.length-1]:'
-                '__builtin__.__empty_kwarg();'
+                '$b.__empty_kwarg();'
             "return b;};$m.f.__name__='f';$m.f.__args__=[null,'b'];" 
             '$m.f.__bind_type__=0;', 
             'def f(**b): return b')
 
         t('$m.f=function f(){'
             'var b=(arguments.length>0)?arguments[arguments.length-1]:'
-                '__builtin__.__empty_kwarg();'
+                '$b.__empty_kwarg();'
                 'b=1;'
                 "return null;};$m.f.__name__='f';$m.f.__args__=[null,'b'];" 
                 '$m.f.__bind_type__=0;', 
                 'def f(**b): b=1')
 
         t('$m.f=function f(){'
-            'var a=__builtin__.tuple(Array.prototype.slice.call('
+            'var a=$b.tuple(Array.prototype.slice.call('
                 'arguments,0,(arguments.length-1)));'
            'var b=(arguments.length>0)?arguments[arguments.length-1]:'
-               '__builtin__.__empty_kwarg();'
+               '$b.__empty_kwarg();'
             'if(b._pyjs_is_kwarg===undefined){'
                 'a.l.push(b);'
-                'b=__builtin__.__empty_kwarg();'
+                'b=$b.__empty_kwarg();'
             '}'
             "return null;};$m.f.__name__='f';$m.f.__args__=['a','b'];" 
             '$m.f.__bind_type__=0;', 
@@ -808,16 +808,16 @@ class C(object):
 
         t('$m.f=function f(a,b){'
            'var c=(arguments.length>2)?arguments[arguments.length-1]:'
-               '__builtin__.__empty_kwarg();'
+               '$b.__empty_kwarg();'
 		"if(c===undefined){"
-			'c=__builtin__.dict({});'
+			'c=$b.dict({});'
 			"if(b!==undefined){"
-				"if(__builtin__.get_pyjs_classtype(b)=='dict'){"
+				"if($b.get_pyjs_classtype(b)=='dict'){"
 					'c=b;'
 					'b=arguments[2];'
 				'}'
 			"}else{if(a!==undefined){"
-				"if(__builtin__.get_pyjs_classtype(a)=='dict'){"
+				"if($b.get_pyjs_classtype(a)=='dict'){"
 					'c=a;'
 					'a=arguments[2];'
 				'}}'
@@ -828,24 +828,24 @@ class C(object):
             'def f(a,b=1,**c): return None')
 
         t('$m.f=function f(a,b){'
-            'var c=__builtin__.tuple(Array.prototype.slice.call('
+            'var c=$b.tuple(Array.prototype.slice.call('
             'arguments,2,(arguments.length-1)));'
 		'var d=(arguments.length>2)?arguments[arguments.length-1]:'
-            '__builtin__.__empty_kwarg();'
+            '$b.__empty_kwarg();'
 		"if(d._pyjs_is_kwarg===undefined)"
         '{'
 			"c.l.push(d);"
-            'd=__builtin__.__empty_kwarg();'
+            'd=$b.__empty_kwarg();'
 		'}'
 		"if(d===undefined){"
-			'd=__builtin__.dict({});'
+			'd=$b.dict({});'
 			"if(b!==undefined){"
-				"if(__builtin__.get_pyjs_classtype(b)=='dict'){"
+				"if($b.get_pyjs_classtype(b)=='dict'){"
 					'd=b;'
 					'b=arguments[2];'
 				'}'
 			"}else{if(a!==undefined){"
-				"if(__builtin__.get_pyjs_classtype(a)=='dict'){"
+				"if($b.get_pyjs_classtype(a)=='dict'){"
 					'd=a;'
 					'a=arguments[2];'
 				'}'
@@ -967,7 +967,7 @@ class C(object):
                         'i=$t2.__fastgetitem__(0);'
                         'j=$t2.__fastgetitem__(1);'
                         'if($t2.__len__()!==2){'
-                        'throw __builtin__.ValueError('
+                        'throw $b.ValueError('
                         "'too many values to unpack'"
                         ');}'
                         's=s.__add__(i);'
@@ -1015,7 +1015,7 @@ class C(object):
     def test_while(self):
         t = self.t
         t('while(true){}', 'while True: pass')
-        t('while(__builtin__._bool($m.a)){3;}', 'while a: 3')
+        t('while($b._bool($m.a)){3;}', 'while a: 3')
         with self.assertError(NotImplementedError, 'else in loop is not implemented.'):
             t('', 'while True: pass\nelse:pass;')
 
@@ -1027,23 +1027,23 @@ class C(object):
     def test_try_except(self):
         def valid(jscode, pycode):
             jscode = 'try{}catch($t1)' \
-                '{$t1=__builtin__._errorMapping($t1);'\
+                '{$t1=$b._errorMapping($t1);'\
                 + jscode + '}'
             pycode = 'try:pass\n' + pycode
             self.t(jscode, pycode)
 
         valid('1;', 'except:1')
-        valid('if(__builtin__.isinstance($t1,$m.Exception))'
+        valid('if($b.isinstance($t1,$m.Exception))'
                 '{1;}else{'
                 'throw $t1;}',
                 'except Exception:1')
-        valid('if(__builtin__.isinstance($t1,$m.Exception)){'
+        valid('if($b.isinstance($t1,$m.Exception)){'
 			'$m.e=$t1;'
             "$m.e=$m.e.__add__(1);"
 		'}else{1;}',
         'except Exception as e:e+=1\nexcept:1')
 
-        valid('if(__builtin__.isinstance($t1,$m.Exception)){'
+        valid('if($b.isinstance($t1,$m.Exception)){'
 			'$m.e=$t1;'
             "$m.e=$m.e.__add__(1);"
 		'}else{throw $t1;}',
@@ -1053,7 +1053,7 @@ class C(object):
         def valid(jscode, pycode):
             jscode = '$m.f=function f(){var e;' \
             'try{}catch($t1)' \
-                '{$t1=__builtin__._errorMapping($t1);'\
+                '{$t1=$b._errorMapping($t1);'\
                 + jscode + '}return null;};$m.f.__name__=\'f\';'\
                 '$m.f.__args__=[null,null];$m.f.__bind_type__=0;'
             pycode = '''
@@ -1063,7 +1063,7 @@ def f():
     ''' + pycode
             self.t(jscode, pycode)
 
-        valid('if(__builtin__.isinstance($t1,$m.Exception)){'
+        valid('if($b.isinstance($t1,$m.Exception)){'
 			'e=$t1;'
             "e=e.__add__(1);"
         '}else{1;}',
@@ -1154,7 +1154,7 @@ def f():
         self.do_cls_member(
             "f:pyjs__bind_method('f',(function f(b){"
             'var self=this;'
-            'var a=__builtin__.tuple(Array.prototype.slice.call(arguments,1));'
+            'var a=$b.tuple(Array.prototype.slice.call(arguments,1));'
 			'return a.__add__(self);'
             '})'
             ",1,['a',null,['self'],['b']])", '',
@@ -1166,7 +1166,7 @@ def f():
                 'var self=this;'
                 'var b=(arguments.length>0)?'
                     'arguments[arguments.length-1]:'
-                    '__builtin__.__empty_kwarg();'
+                    '$b.__empty_kwarg();'
                         "return null;})"
                 ",1,[null,'b',['self']])", '',
                 '\n def f(self,**b): pass')
@@ -1268,7 +1268,7 @@ def f():
             ",1,[null,null,['self']]))",
 
             '$i.f='
-            "__builtin__._getattr($i.f,'setter')"
+            "$b._getattr($i.f,'setter')"
             "(pyjs__bind_method('f',(function f(){"
                 'var self=this;'
                 'return null;'
@@ -1289,34 +1289,34 @@ def f():
 
     def test_import(self):
         t = self.t
-        t("$m.a=__builtin__.import_('a');", 'import a')
-        t("$m.a=__builtin__.import_('a');$m.b=__builtin__.import_('b');", 
+        t("$m.a=$b.import_('a');", 'import a')
+        t("$m.a=$b.import_('a');$m.b=$b.import_('b');",
                 'import a, b')
-        t("$m.d=__builtin__.import_('a');", 'import a as d')
-        t("$m.t=__builtin__.import_('a');__builtin__.import_('a.b');$m.t;",
+        t("$m.d=$b.import_('a');", 'import a as d')
+        t("$m.t=$b.import_('a');$b.import_('a.b');$m.t;",
                 'import a.b as t\nt')
-        t("$m.a=__builtin__.import_('a');__builtin__.import_('a.b');"
-        "$m.a=__builtin__.import_('a');__builtin__.import_('a.b.c');"
-                "__builtin__._getattr($m.a,'b');", 'import a.b, a.b.c\na.b')
+        t("$m.a=$b.import_('a');$b.import_('a.b');"
+        "$m.a=$b.import_('a');$b.import_('a.b.c');"
+                "$b._getattr($m.a,'b');", 'import a.b, a.b.c\na.b')
 
     def test_import_from_in_func(self):
         self.do_no_arg_func("var b;"
-                "b=__builtin__.import_('a').b;",
+                "b=$b.import_('a').b;",
             '\n from a import b', debug=False)
         self.do_no_arg_func("var c;"
-                "c=__builtin__.import_('a').b;",
+                "c=$b.import_('a').b;",
             '\n from a import b as c', debug=False)
 
     def test_import_in_func(self):
-        self.do_no_arg_func("var a;a=__builtin__.import_('a');",
+        self.do_no_arg_func("var a;a=$b.import_('a');",
                 '\n import a')
-        self.do_no_arg_func("var a,b;a=__builtin__.import_('a');"
-                "b=__builtin__.import_('b');",
+        self.do_no_arg_func("var a,b;a=$b.import_('a');"
+                "b=$b.import_('b');",
                 '\n import a,b')
-        self.do_no_arg_func("var b;b=__builtin__.import_('a');",
+        self.do_no_arg_func("var b;b=$b.import_('a');",
                 '\n import a as b')
-        self.do_no_arg_func("var a;a=__builtin__.import_('a');"
-                "__builtin__.import_('a.b');",
+        self.do_no_arg_func("var a;a=$b.import_('a');"
+                "$b.import_('a.b');",
                 '\n import a.b')
 
     def test_import_future(self):
@@ -1330,25 +1330,25 @@ def f():
 
     def test_import_from(self):
         t = self.t
-        t("$m.d=__builtin__._valid_symbol('a','d',__builtin__.import_('a').d);",
+        t("$m.d=$b._valid_symbol('a','d',$b.import_('a').d);",
             'from a import d')
-        t("__builtin__.import_('a');"
-            "$p=__builtin__.import_('a.b');"
-            "$m.c=__builtin__._valid_symbol('a.b','d',$p.d);"
-            "$m.ee=__builtin__._valid_symbol('a.b','ee',$p.ee);",
+        t("$b.import_('a');"
+            "$p=$b.import_('a.b');"
+            "$m.c=$b._valid_symbol('a.b','d',$p.d);"
+            "$m.ee=$b._valid_symbol('a.b','ee',$p.ee);",
             'from a.b import d as c, ee')
 
-        t("$m.d=__builtin__.import_('a').d;", 'from a import d', debug=False)
-        t("__builtin__.import_('a');"
-            "$p=__builtin__.import_('a.b');"
+        t("$m.d=$b.import_('a').d;", 'from a import d', debug=False)
+        t("$b.import_('a');"
+            "$p=$b.import_('a.b');"
             "$m.c=$p.d;"
             "$m.ee=$p.ee;",
             'from a.b import d as c, ee', debug=False)
 
-        t("__builtin__._import_all_from_module($m,__builtin__.import_('a'));",
+        t("$b._import_all_from_module($m,$b.import_('a'));",
             'from a import *')
-        t("__builtin__.import_('a');"
-            "__builtin__._import_all_from_module($m,__builtin__.import_('a.b'));",
+        t("$b.import_('a');"
+            "$b._import_all_from_module($m,$b.import_('a.b'));",
             'from a.b import *')
 
     def test_auto_import_parent_package(self):
@@ -1357,13 +1357,13 @@ def f():
             expected = '(function(){var $p;' + expected
             assert back.startswith(expected), back
 
-        do_test("if(__builtin__._module_loaded('a.b')){return;}"
-                "var $m=new __builtin__.module('a.b','a/b.py');"
-                "__builtin__.import_('a').b=$m;", 'a.b')
-        do_test("if(__builtin__._module_loaded('a.b.c')){return;}"
-                "var $m=new __builtin__.module('a.b.c','a/b/c.py');"
-                "__builtin__.import_('a');"
-                "__builtin__.import_('a.b').c=$m;",
+        do_test("if($b._module_loaded('a.b')){return;}"
+                "var $m=new $b.module('a.b','a/b.py');"
+                "$b.import_('a').b=$m;", 'a.b')
+        do_test("if($b._module_loaded('a.b.c')){return;}"
+                "var $m=new $b.module('a.b.c','a/b/c.py');"
+                "$b.import_('a');"
+                "$b.import_('a.b').c=$m;",
                 'a.b.c')
 
     def test_yield(self):
@@ -1376,7 +1376,7 @@ def f():
         t(
             '(function(){'
                 'var $t1,$t2,i;'
-                '$t1=__builtin__.list();'
+                '$t1=$b.list();'
                 '$t2=$m.foo(10).__iter__();'
                 'try{'
                     'while(true){'
@@ -1393,12 +1393,12 @@ def f():
         t(
             '(function(){'
                 'var $t1,$t2,i;'
-                '$t1=__builtin__.list();'
+                '$t1=$b.list();'
                 '$t2=$m.foo(10).__iter__();'
                 'try{'
                     'while(true){'
                         'i=$t2.next();'
-                        'if(!__builtin__.eq(i,10)){'
+                        'if(!$b.eq(i,10)){'
                             '$t1.append(i);'
                         '}'
                     '}'
@@ -1412,7 +1412,7 @@ def f():
         t(
             '(function(){'
                 'var $t1,$t2,x,$t3,y;'
-                '$t1=__builtin__.list();'
+                '$t1=$b.list();'
                 '$t2=$m.foo(10).__iter__();'
                 'try{'
                     'while(true){'
@@ -1440,17 +1440,17 @@ def f():
         t(
             '(function(){'
                 'var $t1,$t2,x,$t3,y;'
-                '$t1=__builtin__.list();'
+                '$t1=$b.list();'
                 '$t2=$m.foo(10).__iter__();'
                 'try{'
                     'while(true){'
                         'x=$t2.next();'
-                        'if(__builtin__.__lt(x,5)){'
+                        'if($b.__lt(x,5)){'
                             '$t3=$m.bar(20).__iter__();'
                             'try{'
                                 'while(true){'
                                     'y=$t3.next();'
-                                    'if(__builtin__.eq(y,3)){'
+                                    'if($b.eq(y,3)){'
                                         '$t1.append(x);'
                                     '}'
                                 '}'
@@ -1476,15 +1476,15 @@ def f():
 
     def test_genxp(self):
         t = self.t
-        t('__builtin__._comp_expr($m.range(10),'
+        t('$b._comp_expr($m.range(10),'
           '(function(i){return i;}),null);', '(i for i in range(10))')
 
-        t('__builtin__._comp_expr($m.range(10),'
+        t('$b._comp_expr($m.range(10),'
           '(function(i){return i.__mul__(i);}),null);', '(i * i for i in range(10))')
 
-        t('__builtin__._comp_expr($m.range(10),'
+        t('$b._comp_expr($m.range(10),'
           '(function(i){return i.__mul__(i);}),'
-          '(function(i){return __builtin__.__gt(i,3);}));',
+          '(function(i){return $b.__gt(i,3);}));',
           '(i * i for i in range(10) if i > 3)')
 
     def test_genxp_unsupported(self):
@@ -1540,27 +1540,27 @@ def f():
                 'class foo(object):\n  def a(self):pass\n  b=a\n')
 
     def test_assert(self):
-        self.t('__builtin__._assert(true,null);', 'assert True')
-        self.t("__builtin__._assert(true,'abc');", 'assert True, "abc"')
+        self.t('$b._assert(true,null);', 'assert True')
+        self.t("$b._assert(true,'abc');", 'assert True, "abc"')
         self.t('', 'assert True, "abc"', debug=False)
 
     def test_emb_py_src(self):
         self.do_test("var $p;"
-                "if(__builtin__._module_loaded('t.a')){return;}"
-                "var $m=new __builtin__.module('t.a','t/a.py');"
-                "__builtin__.import_('t').a=$m;",
+                "if($b._module_loaded('t.a')){return;}"
+                "var $m=new $b.module('t.a','t/a.py');"
+                "$b.import_('t').a=$m;",
                 'pass', module='t.a')
 
         self.do_test("var $p;"
-                "if(__builtin__._module_loaded('t')){return;}"
-                "var $m=new __builtin__.module('t','t.py');"
+                "if($b._module_loaded('t')){return;}"
+                "var $m=new $b.module('t','t.py');"
                 "$m.__src__='pass'.splitlines();",
                 'pass', embsrc=True) 
 
     def test_src_map(self):
         self.do_test("  var $p;\n"
-            "  if (__builtin__._module_loaded('t')) {\n    return;\n  }\n"
-            "  var $m = new __builtin__.module('t', 't.py');\n"
+            "  if ($b._module_loaded('t')) {\n    return;\n  }\n"
+            "  var $m = new $b.module('t', 't.py');\n"
             '  $m.a = 1;\n'
             "  $m.__srcmap__ = [-1,-1,-1,-1,-1,-1,-1,1,-1];\n", 'a=1',
             debug=True, embsrc=False, pretty=True, srcmap=True)
@@ -1572,8 +1572,8 @@ line 3;
 """)
 3;'''
         self.do_test("  var $p;\n"
-            "  if (__builtin__._module_loaded('t')) {\n    return;\n  }\n"
-            "  var $m = new __builtin__.module('t', 't.py');\n"
+            "  if ($b._module_loaded('t')) {\n    return;\n  }\n"
+            "  var $m = new $b.module('t', 't.py');\n"
             '  line 2;\n'
             "  '\\n'\n"
             '  line 3;\n'

@@ -10,6 +10,7 @@ from .internal import Singleton
 EXPR_TYPE_NUM = 'num'
 EXPR_TYPE_BOOL = 'bool'
 EXPR_TYPE_STR = 'str'
+BUILTIN_VAR = '$b'
 
 class Ast(object): 
     ''' Base class of all javascript ast '''
@@ -331,7 +332,7 @@ def as_global_func_call(expr):
         return expr.val.attr
 
 def _is_builtin(expr):
-    return isinstance(expr, Name) and expr.id == '__builtin__'
+    return isinstance(expr, Name) and expr.id == BUILTIN_VAR
 
 class Call(Expr):
     def __init__(self, val, args):

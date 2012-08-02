@@ -20,12 +20,7 @@ def _trigger(event=None):
 
     __funcs.reverse()
     while __funcs:
-        try:
-            __funcs.pop()()
-        except Exception as e:
-            msg = str(e)
-            JS('alert(msg);')
-            raise e
+        __funcs.pop()()
 
 def _reset():
     del __funcs[:]

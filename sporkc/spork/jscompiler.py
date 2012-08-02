@@ -641,15 +641,15 @@ class AstVisitor(object):
             del body[0]
 
     def visit_Module(self, node):
-        def import_parent_package(m):
-            if '.' in m:
-                ppkgs = m.split('.')
-                combine = lambda x, y: x + '.' + y
-                for item in scanl(combine, ppkgs[0], ppkgs[1:-1]):
-                    e = j.Call(j.Attribute(_sf, 'import_'), [j.Str(item)])
-                    if '.' not in m[len(item) + 1:]:
-                        e = j.Assign(j.Attribute(e, ppkgs[-1]), MODULE_VAR_id)
-                    yield j.Expr_stat(e)
+        def import_parent_packages(m):
+            pkg, _, module_name = m.rpartition('.')
+            if pkg:
+                result = list(self.__gen_import(None, pkg))
+                e = result[-1]
+                e = j.Assign(j.Attribute(e.expr, module_name), MODULE_VAR_id)
+                result[-1] = j.Expr_stat(e)
+                return result
+            return ()
 
         self._remove_docstring(node)
         
@@ -668,7 +668,7 @@ class AstVisitor(object):
             module_obj = j.New_object(j.Attribute(_sf, 'module'), (j.Str(m),
                 j.Str(get_module_filename(m, '.py'))))
             stats.append(j.Declare_var_stat(MODULE_VAR, module_obj))
-            stats.extend(import_parent_package(m))
+            stats.extend(import_parent_packages(m))
 
         stats.extend(self._visit_stats(node.body))
         if self.srcmap:
@@ -1555,12 +1555,16 @@ class AstVisitor(object):
 
     def __gen_import(self, node, module_name):
         names = iter(module_name.split('.'))
-        for n in scanl(lambda x, y: x + '.' + y, next(names), names):
-            stat = j.Call(j.Attribute(_sf, 'import_'), [j.Str(n)])
-            stat = j.Expr_stat(stat)
+        combine = lambda x, y: x + '.' + y
+        for item in scanl(combine, next(names), names):
             if self._on_head_importing:
-                self._symbol.add_import(n)
-            yield _clo(stat, node)
+                self._symbol.add_import(item)
+            stat = j.Call(j.Attribute(_sf, 'import_'), [j.Str(item)])
+            stat = j.Expr_stat(stat)
+            if node is not None:
+                yield _clo(stat, node)
+            else:
+                yield stat
 
     def visit_Import(self, node):
         names = node.names

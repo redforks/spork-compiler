@@ -529,6 +529,7 @@ class AstVisitor(object):
         self.__imported_spork_funcs = {}
         self.__spork_imported_as = None
         self._symbol = Symbol(module_name, debug)
+        self._modules_imported = set()
 
     def __is_spork_module(self, node):
         return isinstance(node, ast.Name) and \
@@ -1567,14 +1568,22 @@ class AstVisitor(object):
             yield item
 
     def __gen_import_expr(self, module_name):
+        self._modules_imported.add(module_name)
         return j.Call(j.Attribute(_sf, 'import_'), [j.Str(module_name)])
 
     def __gen_import_stat(self, module_names, node=None):
         def do_gen(module_name):
-            r = self.__gen_import_expr(module_name)
-            r = j.Expr_stat(r)
-            return _clo(r, node)
-        return [do_gen(x) for x in module_names]
+            if not module_name in self._modules_imported:
+                self._modules_imported.add(module_name)
+                r = self.__gen_import_expr(module_name)
+                r = j.Expr_stat(r)
+                return _clo(r, node)
+        result = []
+        for m in module_names:
+            stat = do_gen(m)
+            if stat is not None:
+                result.append(stat)
+        return result
 
     def visit_Import(self, node):
         names = node.names

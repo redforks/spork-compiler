@@ -1296,8 +1296,8 @@ def f():
         t("$m.t=__builtin__.import_('a');__builtin__.import_('a.b');$m.t;",
                 'import a.b as t\nt')
         t("$m.a=__builtin__.import_('a');__builtin__.import_('a.b');"
-        "$m.a=__builtin__.import_('a');__builtin__.import_('a.c');"
-                "__builtin__._getattr($m.a,'b');", 'import a.b, a.c\na.b')
+        "$m.a=__builtin__.import_('a');__builtin__.import_('a.b.c');"
+                "__builtin__._getattr($m.a,'b');", 'import a.b, a.b.c\na.b')
 
     def test_import_from_in_func(self):
         self.do_no_arg_func("var b;"

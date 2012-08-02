@@ -529,10 +529,6 @@ class AstVisitor(object):
         self.__imported_spork_funcs = {}
         self.__spork_imported_as = None
         self._symbol = Symbol(module_name, debug)
-        self.__bool_op_maps = {
-                ast.And: self._logic_and,
-                ast.Or: self._logic_or
-            }
 
     def __is_spork_module(self, node):
         return isinstance(node, ast.Name) and \
@@ -1013,11 +1009,17 @@ class AstVisitor(object):
                 j.Conditional_op(bool_first, left_var, right_exp)
         return self._logic_and_or(left, right, op, j.Logic_or)
 
+    __bool_op_maps = {
+            ast.And: _logic_and,
+            ast.Or: _logic_or
+        }
+    del _logic_and, _logic_or
+
     def visit_BoolOp(self, node):
         t = self.__bool_op_maps[type(node.op)]
-        result = t(self.visit(node.values[0]), self.visit(node.values[1]))
+        result = t(self, self.visit(node.values[0]), self.visit(node.values[1]))
         for n in islice(node.values, 2, None):
-            result = t(result, self.visit(n))
+            result = t(self, result, self.visit(n))
         return result
 
     __unary_op_maps = {

@@ -1608,6 +1608,26 @@ class AstVisitor(object):
             yield name, asname or name.partition('.')[0]
 
     def visit_ImportFrom(self, node):
+        def gen_import_from_expr(module_expr, name, asname):
+            if name == '*':
+                result = j.Call(j.Attribute(_sf, '_import_all_from_module'),[
+                        MODULE_VAR_id,
+                        module_expr
+                    ])
+            else:
+                left = self.scope.resolve(asname or name, None)
+                if self.debug:
+                    right = j.Call(j.Attribute(_sf, '_valid_symbol'), [
+                            j.Str(module), j.Str(name),
+                            j.Attribute(module_expr, name)
+                        ])
+                else:
+                    right = j.Attribute(module_expr, name)
+                result = j.Assign(left, right)
+            result = j.Expr_stat(result)
+            _clo(result, node)
+            return result
+
         level, module, names = node.level, node.module, node.names
         if module == '__future__':
             raise NotImplementedError(
@@ -1627,26 +1647,12 @@ class AstVisitor(object):
         name_seq = list(self.__get_import_seq(module))
         result = self.__gen_import_stat(name_seq[:-1], node)
         e = self.__gen_import_expr(name_seq[-1])
-        e = j.AssignStat(IMPORT_TMP_VAR_id, e)
-        result.append(e)
-        for name, asname in self.__iter_aliases(names):
-            if name == '*':
-                stat = j.Call(j.Attribute(_sf, '_import_all_from_module'),[
-                        MODULE_VAR_id,
-                        IMPORT_TMP_VAR_id
-                    ])
-            else:
-                left = self.scope.resolve(asname or name, None)
-                stat = j.Assign(
-                        left,
-                        j.Call(j.Attribute(_sf, '_valid_symbol'), [
-                            j.Str(module), j.Str(name),
-                            j.Attribute(IMPORT_TMP_VAR_id, name)
-                        ]) if self.debug else
-                        j.Attribute(IMPORT_TMP_VAR_id, name)
-                    )
-            stat = j.Expr_stat(stat)
-            result.append(_clo(stat, node))
+        pairs = list(self.__iter_aliases(names))
+        if len(pairs) != 1:
+            result.append(j.AssignStat(IMPORT_TMP_VAR_id, e))
+            e = IMPORT_TMP_VAR_id
+
+        result.extend(gen_import_from_expr(e, *x) for x in pairs)
         return result
 
     def visit_Yield(self, node):

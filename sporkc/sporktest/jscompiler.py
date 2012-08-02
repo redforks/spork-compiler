@@ -1301,12 +1301,10 @@ def f():
 
     def test_import_from_in_func(self):
         self.do_no_arg_func("var b;"
-                "$p=__builtin__.import_('a');"
-                "b=$p.b;",
+                "b=__builtin__.import_('a').b;",
             '\n from a import b', debug=False)
         self.do_no_arg_func("var c;"
-                "$p=__builtin__.import_('a');"
-                "c=$p.b;",
+                "c=__builtin__.import_('a').b;",
             '\n from a import b as c', debug=False)
 
     def test_import_in_func(self):
@@ -1332,27 +1330,26 @@ def f():
 
     def test_import_from(self):
         t = self.t
-        t("$p=__builtin__.import_('a');"
-            "$m.d=__builtin__._valid_symbol('a','d',$p.d);", 'from a import d')
+        t("$m.d=__builtin__._valid_symbol('a','d',__builtin__.import_('a').d);",
+            'from a import d')
         t("__builtin__.import_('a');"
             "$p=__builtin__.import_('a.b');"
             "$m.c=__builtin__._valid_symbol('a.b','d',$p.d);"
             "$m.ee=__builtin__._valid_symbol('a.b','ee',$p.ee);",
             'from a.b import d as c, ee')
 
-        t("$p=__builtin__.import_('a');$m.d=$p.d;", 'from a import d', debug=False)
+        t("$m.d=__builtin__.import_('a').d;", 'from a import d', debug=False)
         t("__builtin__.import_('a');"
             "$p=__builtin__.import_('a.b');"
             "$m.c=$p.d;"
             "$m.ee=$p.ee;",
             'from a.b import d as c, ee', debug=False)
 
-        t("$p=__builtin__.import_('a');"
-                "__builtin__._import_all_from_module($m,$p);",
-                'from a import *')
-        t("__builtin__.import_('a');$p=__builtin__.import_('a.b');"
-                "__builtin__._import_all_from_module($m,$p);",
-                'from a.b import *')
+        t("__builtin__._import_all_from_module($m,__builtin__.import_('a'));",
+            'from a import *')
+        t("__builtin__.import_('a');"
+            "__builtin__._import_all_from_module($m,__builtin__.import_('a.b'));",
+            'from a.b import *')
 
     def test_auto_import_parent_package(self):
         def do_test(expected, module):

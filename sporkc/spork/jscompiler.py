@@ -640,10 +640,11 @@ class AstVisitor(object):
         def import_parent_packages(m):
             pkg, _, module_name = m.rpartition('.')
             if pkg:
-                result = list(self.__gen_import(None, pkg))
-                e = result[-1]
-                e = j.Assign(j.Attribute(e.expr, module_name), MODULE_VAR_id)
-                result[-1] = j.Expr_stat(e)
+                names = list(self.__get_import_seq(pkg))
+                result = self.__gen_import_stat(names[:-1], node)
+                e = self.__gen_import_expr(names[-1])
+                e = j.AssignStat(j.Attribute(e, module_name), MODULE_VAR_id)
+                result.append(e)
                 return result
             return ()
 
@@ -1556,18 +1557,24 @@ class AstVisitor(object):
         right = j.Call(right, ())
         return j.AssignStat(left, right)
 
-    def __gen_import(self, node, module_name):
-        names = iter(module_name.split('.'))
+    def __get_import_seq(self, module_name):
         combine = lambda x, y: x + '.' + y
+        names = iter(module_name.split('.'))
+        add_import = self._symbol.add_import if self._on_head_importing else\
+                nonef
         for item in scanl(combine, next(names), names):
-            if self._on_head_importing:
-                self._symbol.add_import(item)
-            stat = j.Call(j.Attribute(_sf, 'import_'), [j.Str(item)])
-            stat = j.Expr_stat(stat)
-            if node is not None:
-                yield _clo(stat, node)
-            else:
-                yield stat
+            add_import(item)
+            yield item
+
+    def __gen_import_expr(self, module_name):
+        return j.Call(j.Attribute(_sf, 'import_'), [j.Str(module_name)])
+
+    def __gen_import_stat(self, module_names, node=None):
+        def do_gen(module_name):
+            r = self.__gen_import_expr(module_name)
+            r = j.Expr_stat(r)
+            return _clo(r, node)
+        return [do_gen(x) for x in module_names]
 
     def visit_Import(self, node):
         names = node.names
@@ -1575,12 +1582,15 @@ class AstVisitor(object):
         for name, asname in self.__iter_aliases(names):
             if name == '__spork__':
                 self.__spork_imported_as = asname
-            else: 
-                imports = list(self.__gen_import(node, name))
+            else:
+                modules = iter(self.__get_import_seq(name))
+
+                e = self.__gen_import_expr(next(modules))
                 left = self.scope.resolve(asname, None)
-                stat = j.AssignStat(left, imports[0].expr)
-                imports[0] = _clo(stat, node)
-                result.extend(imports)
+                stat = _clo(j.AssignStat(left, e), node)
+                result.append(stat)
+
+                result.extend(self.__gen_import_stat(modules, node))
         return result
 
     def __iter_aliases(self, names):
@@ -1605,9 +1615,11 @@ class AstVisitor(object):
                     raise ImportError('can not import name ' + name)
             return
 
-        result = list(self.__gen_import(node, module))
-        last_import = result.pop().expr
-        result.append(j.AssignStat(IMPORT_TMP_VAR_id, last_import))
+        name_seq = list(self.__get_import_seq(module))
+        result = self.__gen_import_stat(name_seq[:-1], node)
+        e = self.__gen_import_expr(name_seq[-1])
+        e = j.AssignStat(IMPORT_TMP_VAR_id, e)
+        result.append(e)
         for name, asname in self.__iter_aliases(names):
             if name == '*':
                 stat = j.Call(j.Attribute(_sf, '_import_all_from_module'),[

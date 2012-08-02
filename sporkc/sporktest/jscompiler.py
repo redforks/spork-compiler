@@ -59,50 +59,50 @@ class JSCompilerTest(JSCompilerTestBase):
 
     def test_with(self):
         expected = \
-        '_$t_1=$m.a;' \
-        "_$t_1.__enter__();" \
-        '_$t_2=true;' \
+        '$t1=$m.a;' \
+        "$t1.__enter__();" \
+        '$t2=true;' \
         'try{$m.c();}' \
-        'catch(_$t_3){' \
-            '_$t_2=false;' \
-            "if(!_$t_1.__exit__(_$t_3.__class__,_$t_3,null)){" \
-                'throw _$t_3;' \
+        'catch($t3){' \
+            '$t2=false;' \
+            "if(!$t1.__exit__($t3.__class__,$t3,null)){" \
+                'throw $t3;' \
             '}' \
         '}finally{' \
-            'if(_$t_2){' \
-                '_$t_1.__exit__(null,null,null);' \
+            'if($t2){' \
+                '$t1.__exit__(null,null,null);' \
             '}' \
         '}'
-        self.t(expected, 'with a: c()', vars=['_$t_1','_$t_2','_$t_3'])
+        self.t(expected, 'with a: c()', vars=['$t1','$t2','$t3'])
 
     def test_with_var(self):
         expected = \
-        '_$t_1=$m.a;' \
-        "$m.d=_$t_1.__enter__();" \
-        '_$t_2=true;' \
+        '$t1=$m.a;' \
+        "$m.d=$t1.__enter__();" \
+        '$t2=true;' \
         'try{$m.c=$m.d;}' \
-        'catch(_$t_3){' \
-            '_$t_2=false;' \
-            "if(!_$t_1.__exit__(_$t_3.__class__,_$t_3,null)){" \
-                'throw _$t_3;' \
+        'catch($t3){' \
+            '$t2=false;' \
+            "if(!$t1.__exit__($t3.__class__,$t3,null)){" \
+                'throw $t3;' \
             '}' \
         '}finally{' \
-            'if(_$t_2){' \
-                '_$t_1.__exit__(null,null,null);' \
+            'if($t2){' \
+                '$t1.__exit__(null,null,null);' \
             '}' \
         '}'
         self.t(expected, 'with a as d: c=d',
-                vars=['_$t_1','_$t_2','_$t_3'])
+                vars=['$t1','$t2','$t3'])
 
     def test_tmp_var_in_package_module(self):
-        self.t('_$t_1=$m.a;'
-            '$m.b=_$t_1.__fastgetitem__(0);'
-            '$m.c=_$t_1.__fastgetitem__(1);'
-            'if(_$t_1.__len__()!==2){'
+        self.t('$t1=$m.a;'
+            '$m.b=$t1.__fastgetitem__(0);'
+            '$m.c=$t1.__fastgetitem__(1);'
+            'if($t1.__len__()!==2){'
             'throw __builtin__.ValueError('
             "'too many values to unpack'"
             ');}',
-            'b, c = a', 'a.b', vars=['_$t_1'])
+            'b, c = a', 'a.b', vars=['$t1'])
 
     def test_literal(self):
         t = self.t
@@ -234,8 +234,8 @@ class JSCompilerTest(JSCompilerTestBase):
         t('$m.a=1;$m.b=1;', 'a = b = 1')
         t('$m.a=1;$m.b=1;', 'a = 1\nb=1')
         t('$m.a=1;$m.b.__setitem__(3,1);', 'a = b[3] = 1')
-        t('_$t_1=$m.c.__add__(2);$m.a=_$t_1;$m.b=_$t_1;', 'a = b = c+2',
-                vars=['_$t_1'])
+        t('$t1=$m.c.__add__(2);$m.a=$t1;$m.b=$t1;', 'a = b = c+2',
+                vars=['$t1'])
 
     def test_assign_subscription(self):
         t = self.t
@@ -349,21 +349,21 @@ class JSCompilerTest(JSCompilerTestBase):
 
     def test_tuple_assign(self):
         t = self.t
-        js ='_$t_1=$m.p;$m.a=_$t_1.__fastgetitem__(0);'\
-            '$m.b=_$t_1.__fastgetitem__(1);'
-        t(js, 'a,b=p', debug=False, vars=['_$t_1'])
-        t(js + 'if(_$t_1.__len__()!==2){'
+        js ='$t1=$m.p;$m.a=$t1.__fastgetitem__(0);'\
+            '$m.b=$t1.__fastgetitem__(1);'
+        t(js, 'a,b=p', debug=False, vars=['$t1'])
+        t(js + 'if($t1.__len__()!==2){'
         'throw __builtin__.ValueError('
         "'too many values to unpack');}",
-        'a,b=p', debug=True, vars=['_$t_1'])
+        'a,b=p', debug=True, vars=['$t1'])
 
-        t('_$t_1=__builtin__.tuple([3,4,5]);'
-          '$m.a=_$t_1.__fastgetitem__(0);$m.b=_$t_1.__fastgetitem__(1);'
-          '$m.c=_$t_1.__fastgetitem__(2);'
-          'if(_$t_1.__len__()!==3){'
+        t('$t1=__builtin__.tuple([3,4,5]);'
+          '$m.a=$t1.__fastgetitem__(0);$m.b=$t1.__fastgetitem__(1);'
+          '$m.c=$t1.__fastgetitem__(2);'
+          'if($t1.__len__()!==3){'
           'throw __builtin__.ValueError('
           "'too many values to unpack');}",
-          'a,b,c=3,4,5', vars=['_$t_1'])
+          'a,b,c=3,4,5', vars=['$t1'])
 
     def test_merge_var_declar(self):
         self.do_no_arg_func('var a,b;a=1;b=1;', '\n a=1\n b=1')
@@ -404,16 +404,16 @@ class JSCompilerTest(JSCompilerTestBase):
         t = self.t
         t('for($m.i=0;$m.i<10;$m.i++){}', 'for i in range(10): pass')
         t('for($m.i=0;$m.i<10;$m.i++){1;}', 'for i in xrange(10): 1')
-        t('_$t_1=$m.a;for($m.i=0;$m.i<_$t_1;$m.i++){1;}',
-                'for i in xrange(a): 1', vars=['_$t_1'])
-        t('(function(){var _$t_1,i,_$t_2;_$t_1=__builtin__.list();_$t_2=$m.a;'
-            'for(i=0;i<_$t_2;i++){'
-            '_$t_1.append(i);'
-            '}return _$t_1;})();', '[i for i in xrange(a)]')
-        t('(function(){var _$t_1,i;_$t_1=__builtin__.list();'
+        t('$t1=$m.a;for($m.i=0;$m.i<$t1;$m.i++){1;}',
+                'for i in xrange(a): 1', vars=['$t1'])
+        t('(function(){var $t1,i,$t2;$t1=__builtin__.list();$t2=$m.a;'
+            'for(i=0;i<$t2;i++){'
+            '$t1.append(i);'
+            '}return $t1;})();', '[i for i in xrange(a)]')
+        t('(function(){var $t1,i;$t1=__builtin__.list();'
             'for(i=0;i<10;i++){'
-            '_$t_1.append(i);'
-            '}return _$t_1;})();', '[i for i in range(10)]')
+            '$t1.append(i);'
+            '}return $t1;})();', '[i for i in range(10)]')
 
     def test_bin_op(self):
         t = self.t
@@ -502,19 +502,19 @@ class JSCompilerTest(JSCompilerTestBase):
 
     def test_logicop(self):
         t = self.t
-        vars=['_$t_1']
-        t('(_$t_1=$m.a),(__builtin__._bool(_$t_1)?2:_$t_1);',
+        vars=['$t1']
+        t('($t1=$m.a),(__builtin__._bool($t1)?2:$t1);',
                 'a and 2', vars=vars)
-        t('(_$t_1=$m.a),(__builtin__._bool(_$t_1)?_$t_1:2);',
+        t('($t1=$m.a),(__builtin__._bool($t1)?$t1:2);',
                 'a or 2', vars=vars)
         t('!true;', 'not True')
         t('!__builtin__._bool($m.a);', 'not a')
-        t('(_$t_2=(_$t_1=$m.a),(__builtin__._bool(_$t_1)?2:_$t_1)),'
-            '(__builtin__._bool(_$t_2)?3:_$t_2);',
-                'a and 2 and 3', vars=['_$t_1', '_$t_2'])
-        t('(_$t_2=$m.a),(__builtin__._bool(_$t_2)?_$t_2:'
-                '((_$t_1=$m.b),(__builtin__._bool(_$t_1)?3:_$t_1)));',
-                'a or b and 3', vars=['_$t_1', '_$t_2'])
+        t('($t2=($t1=$m.a),(__builtin__._bool($t1)?2:$t1)),'
+            '(__builtin__._bool($t2)?3:$t2);',
+                'a and 2 and 3', vars=['$t1', '$t2'])
+        t('($t2=$m.a),(__builtin__._bool($t2)?$t2:'
+                '(($t1=$m.b),(__builtin__._bool($t1)?3:$t1)));',
+                'a or b and 3', vars=['$t1', '$t2'])
 
     def test_optimize_logicop(self):
         t = self.t
@@ -522,8 +522,8 @@ class JSCompilerTest(JSCompilerTestBase):
         t('true&&2;', 'True and 2')
         t('1||$m.a;', '1 or a')
         t('true||2;', 'True or 2')
-        t('(_$t_1=1&&$m.a),(__builtin__._bool(_$t_1)?$m.c:_$t_1);',
-            '1 and a and c', vars=['_$t_1'])
+        t('($t1=1&&$m.a),(__builtin__._bool($t1)?$m.c:$t1);',
+            '1 and a and c', vars=['$t1'])
         t('(1&&2)&&$m.c;', '1 and 2 and c')
 
     def test_conditional_op(self):
@@ -718,11 +718,11 @@ class C(object):
             "$m.a.__args__=[null,null,['b']];$m.a.__bind_type__=0;", 
             'def a(b):return b')
         t('$m.a=function a(b){'
-            'var c,d,_$t_1;'
-            '_$t_1=__builtin__.tuple([1,2]);'
-            'c=_$t_1.__fastgetitem__(0);'
-            'd=_$t_1.__fastgetitem__(1);'
-            'if(_$t_1.__len__()!==2){'
+            'var c,d,$t1;'
+            '$t1=__builtin__.tuple([1,2]);'
+            'c=$t1.__fastgetitem__(0);'
+            'd=$t1.__fastgetitem__(1);'
+            'if($t1.__len__()!==2){'
             'throw __builtin__.ValueError('
             "'too many values to unpack'"
             ');}'
@@ -926,82 +926,82 @@ class C(object):
         t = self.t
         t(
             '$m.s=0;'
-            '_$t_1=$m.foo(10).__iter__();'
+            '$t1=$m.foo(10).__iter__();'
             'try{'
                 'while(true){'
-                    '$m.i=_$t_1.next();'
+                    '$m.i=$t1.next();'
                     "$m.s=$m.s.__add__($m.i);"
                 '}'
-            '}catch(_$t_2){'
-                "if(_$t_2.__name__!=='StopIteration'){"
-                    'throw _$t_2;'
+            '}catch($t2){'
+                "if($t2.__name__!=='StopIteration'){"
+                    'throw $t2;'
                 '}'
-            '}', 's=0\nfor i in foo(10):s+=i', vars=('_$t_1',))
+            '}', 's=0\nfor i in foo(10):s+=i', vars=('$t1',))
 
         with self.assertError(NotImplementedError, 'else in loop is not implemented.'):
             t('', 'for i in range(10):pass\nelse:pass;')
 
         self.do_no_arg_func(
-                'var i,s,_$t_1;'
+                'var i,s,$t1;'
                 's=0;'
-                '_$t_1=$m.foo(10).__iter__();'
+                '$t1=$m.foo(10).__iter__();'
                 'try{'
                     'while(true){'
-                        'i=_$t_1.next();'
+                        'i=$t1.next();'
                         's=s.__add__(i);'
                     '}'
-                '}catch(_$t_2){'
-                    "if(_$t_2.__name__!=='StopIteration'){"
-                    'throw _$t_2;'
+                '}catch($t2){'
+                    "if($t2.__name__!=='StopIteration'){"
+                    'throw $t2;'
                     '}'
                 '}',
             '\n s=0\n for i in foo(10):s+=i')
 
         self.do_no_arg_func(
-                'var i,s,j,_$t_1,_$t_2;'
+                'var i,s,j,$t1,$t2;'
                 's=0;'
-                '_$t_1=$m.foo(10).__iter__();'
+                '$t1=$m.foo(10).__iter__();'
                 'try{'
                     'while(true){'
-                        '_$t_2=_$t_1.next();'
-                        'i=_$t_2.__fastgetitem__(0);'
-                        'j=_$t_2.__fastgetitem__(1);'
-                        'if(_$t_2.__len__()!==2){'
+                        '$t2=$t1.next();'
+                        'i=$t2.__fastgetitem__(0);'
+                        'j=$t2.__fastgetitem__(1);'
+                        'if($t2.__len__()!==2){'
                         'throw __builtin__.ValueError('
                         "'too many values to unpack'"
                         ');}'
                         's=s.__add__(i);'
                     '}'
-                '}catch(_$t_3){'
-                    "if(_$t_3.__name__!=='StopIteration'){"
-                    'throw _$t_3;'
+                '}catch($t3){'
+                    "if($t3.__name__!=='StopIteration'){"
+                    'throw $t3;'
                     '}'
                 '}',
             '\n s=0\n for i,j in foo(10):s+=i')
 
     def test_nested_for(self):
         self.do_no_arg_func(
-                'var i,s,j,_$t_1,_$t_2;'
+                'var i,s,j,$t1,$t2;'
                 's=0;'
-                '_$t_1=$m.foo(10).__iter__();'
+                '$t1=$m.foo(10).__iter__();'
                 'try{'
                     'while(true){'
-                        'i=_$t_1.next();'
-                        '_$t_2=$m.foo(2).__iter__();'
+                        'i=$t1.next();'
+                        '$t2=$m.foo(2).__iter__();'
                         'try{'
                             'while(true){'
-                                'j=_$t_2.next();'
+                                'j=$t2.next();'
                                 's=s.__add__(i.__add__(j));'
                             '}'
-                        '}catch(_$t_3){'
-                            "if(_$t_3.__name__!=='StopIteration'){"
-                                'throw _$t_3;'
+                        '}catch($t3){'
+                            "if($t3.__name__!=='StopIteration'){"
+                                'throw $t3;'
                             '}'
                         '}'
                     '}'
-                '}catch(_$t_4){'
-                    "if(_$t_4.__name__!=='StopIteration'){"
-                        'throw _$t_4;'
+                '}catch($t4){'
+                    "if($t4.__name__!=='StopIteration'){"
+                        'throw $t4;'
                     '}'
                 '}',
 
@@ -1026,34 +1026,34 @@ class C(object):
 
     def test_try_except(self):
         def valid(jscode, pycode):
-            jscode = 'try{}catch(_$t_1)' \
-                '{_$t_1=__builtin__._errorMapping(_$t_1);'\
+            jscode = 'try{}catch($t1)' \
+                '{$t1=__builtin__._errorMapping($t1);'\
                 + jscode + '}'
             pycode = 'try:pass\n' + pycode
             self.t(jscode, pycode)
 
         valid('1;', 'except:1')
-        valid('if(__builtin__.isinstance(_$t_1,$m.Exception))'
+        valid('if(__builtin__.isinstance($t1,$m.Exception))'
                 '{1;}else{'
-                'throw _$t_1;}',
+                'throw $t1;}',
                 'except Exception:1')
-        valid('if(__builtin__.isinstance(_$t_1,$m.Exception)){'
-			'$m.e=_$t_1;'
+        valid('if(__builtin__.isinstance($t1,$m.Exception)){'
+			'$m.e=$t1;'
             "$m.e=$m.e.__add__(1);"
 		'}else{1;}',
         'except Exception as e:e+=1\nexcept:1')
 
-        valid('if(__builtin__.isinstance(_$t_1,$m.Exception)){'
-			'$m.e=_$t_1;'
+        valid('if(__builtin__.isinstance($t1,$m.Exception)){'
+			'$m.e=$t1;'
             "$m.e=$m.e.__add__(1);"
-		'}else{throw _$t_1;}',
+		'}else{throw $t1;}',
         'except Exception as e:e+=1')
 
     def test_try_except_in_func(self):
         def valid(jscode, pycode):
             jscode = '$m.f=function f(){var e;' \
-            'try{}catch(_$t_1)' \
-                '{_$t_1=__builtin__._errorMapping(_$t_1);'\
+            'try{}catch($t1)' \
+                '{$t1=__builtin__._errorMapping($t1);'\
                 + jscode + '}return null;};$m.f.__name__=\'f\';'\
                 '$m.f.__args__=[null,null];$m.f.__bind_type__=0;'
             pycode = '''
@@ -1063,8 +1063,8 @@ def f():
     ''' + pycode
             self.t(jscode, pycode)
 
-        valid('if(__builtin__.isinstance(_$t_1,$m.Exception)){'
-			'e=_$t_1;'
+        valid('if(__builtin__.isinstance($t1,$m.Exception)){'
+			'e=$t1;'
             "e=e.__add__(1);"
         '}else{1;}',
         'except Exception as e:e+=1\n'
@@ -1120,7 +1120,7 @@ def f():
     def test_attr_in_class(self):
         self.do_cls_member('a:1', '', 'a=1')
         self.do_cls_member('a:1,b:1', '', 'a=b=1')
-        self.do_cls_member('', '_$t_1=$m.c;$i.a=_$t_1;$i.b=_$t_1;',
+        self.do_cls_member('', '$t1=$m.c;$i.a=$t1;$i.b=$t1;',
                 'a=b=c')
 
     def test_method_in_class(self):
@@ -1378,98 +1378,98 @@ def f():
         t = self.t
         t(
             '(function(){'
-                'var _$t_1,_$t_2,i;'
-                '_$t_1=__builtin__.list();'
-                '_$t_2=$m.foo(10).__iter__();'
+                'var $t1,$t2,i;'
+                '$t1=__builtin__.list();'
+                '$t2=$m.foo(10).__iter__();'
                 'try{'
                     'while(true){'
-                        'i=_$t_2.next();'
-                        '_$t_1.append(i);'
+                        'i=$t2.next();'
+                        '$t1.append(i);'
                     '}'
-                '}catch(_$t_3){'
-                    "if(_$t_3.__name__!=='StopIteration'){"
-                        'throw _$t_3;'
+                '}catch($t3){'
+                    "if($t3.__name__!=='StopIteration'){"
+                        'throw $t3;'
                     '}'
                 '}'
-            'return _$t_1;})();', '[i for i in foo(10)]')
+            'return $t1;})();', '[i for i in foo(10)]')
 
         t(
             '(function(){'
-                'var _$t_1,_$t_2,i;'
-                '_$t_1=__builtin__.list();'
-                '_$t_2=$m.foo(10).__iter__();'
+                'var $t1,$t2,i;'
+                '$t1=__builtin__.list();'
+                '$t2=$m.foo(10).__iter__();'
                 'try{'
                     'while(true){'
-                        'i=_$t_2.next();'
+                        'i=$t2.next();'
                         'if(!__builtin__.eq(i,10)){'
-                            '_$t_1.append(i);'
+                            '$t1.append(i);'
                         '}'
                     '}'
-                '}catch(_$t_3){'
-                    "if(_$t_3.__name__!=='StopIteration'){"
-                        'throw _$t_3;'
+                '}catch($t3){'
+                    "if($t3.__name__!=='StopIteration'){"
+                        'throw $t3;'
                     '}'
                 '}'
-            'return _$t_1;})();', '[i for i in foo(10) if i != 10]')
+            'return $t1;})();', '[i for i in foo(10) if i != 10]')
 
         t(
             '(function(){'
-                'var _$t_1,_$t_2,x,_$t_3,y;'
-                '_$t_1=__builtin__.list();'
-                '_$t_2=$m.foo(10).__iter__();'
+                'var $t1,$t2,x,$t3,y;'
+                '$t1=__builtin__.list();'
+                '$t2=$m.foo(10).__iter__();'
                 'try{'
                     'while(true){'
-                        'x=_$t_2.next();'
-                        '_$t_3=$m.bar(20).__iter__();'
+                        'x=$t2.next();'
+                        '$t3=$m.bar(20).__iter__();'
                         'try{'
                             'while(true){'
-                                'y=_$t_3.next();'
-                                '_$t_1.append(x.__add__(y));'
+                                'y=$t3.next();'
+                                '$t1.append(x.__add__(y));'
                             '}'
-                        '}catch(_$t_4){'
-                            "if(_$t_4.__name__!=='StopIteration'){"
-                                'throw _$t_4;'
+                        '}catch($t4){'
+                            "if($t4.__name__!=='StopIteration'){"
+                                'throw $t4;'
                             '}'
                         '}'
                     '}'
-                '}catch(_$t_5){'
-                    "if(_$t_5.__name__!=='StopIteration'){"
-                        'throw _$t_5;'
+                '}catch($t5){'
+                    "if($t5.__name__!=='StopIteration'){"
+                        'throw $t5;'
                     '}'
                 '}'
-            'return _$t_1;})();'
+            'return $t1;})();'
             , '[x + y for x in foo(10) for y in bar(20)]')
 
         t(
             '(function(){'
-                'var _$t_1,_$t_2,x,_$t_3,y;'
-                '_$t_1=__builtin__.list();'
-                '_$t_2=$m.foo(10).__iter__();'
+                'var $t1,$t2,x,$t3,y;'
+                '$t1=__builtin__.list();'
+                '$t2=$m.foo(10).__iter__();'
                 'try{'
                     'while(true){'
-                        'x=_$t_2.next();'
+                        'x=$t2.next();'
                         'if(__builtin__.__lt(x,5)){'
-                            '_$t_3=$m.bar(20).__iter__();'
+                            '$t3=$m.bar(20).__iter__();'
                             'try{'
                                 'while(true){'
-                                    'y=_$t_3.next();'
+                                    'y=$t3.next();'
                                     'if(__builtin__.eq(y,3)){'
-                                        '_$t_1.append(x);'
+                                        '$t1.append(x);'
                                     '}'
                                 '}'
-                            '}catch(_$t_4){'
-                                "if(_$t_4.__name__!=='StopIteration'){"
-                                    'throw _$t_4;'
+                            '}catch($t4){'
+                                "if($t4.__name__!=='StopIteration'){"
+                                    'throw $t4;'
                                 '}'
                             '}'
                         '}'
                     '}'
-                '}catch(_$t_5){'
-                    "if(_$t_5.__name__!=='StopIteration'){"
-                        'throw _$t_5;'
+                '}catch($t5){'
+                    "if($t5.__name__!=='StopIteration'){"
+                        'throw $t5;'
                     '}'
                 '}'
-            'return _$t_1;})();'
+            'return $t1;})();'
             , '[x for x in foo(10) if x< 5 for y in bar(20) if y==3]')
 
     def test_list_comp_not_support_multi_var(self):

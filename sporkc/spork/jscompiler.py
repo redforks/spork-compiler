@@ -417,7 +417,7 @@ class ModuleScope(Scope):
     __known_globals = ['isinstance', 'hasattr', 'int', 'str']
 
     def add(self, symbol):
-        if symbol.startswith('_$t_'):
+        if symbol.startswith('$t'):
             self.locals[symbol] = None
 
     def resolve(self, symbol, ctx):
@@ -725,7 +725,7 @@ class AstVisitor(object):
 
     def _unique_name(self):
         self._var_idx += 1
-        return '_$t_' + str(self._var_idx)
+        return '$t' + str(self._var_idx)
 
     def _unique_var(self, initval = None):
         varname = self._unique_name()

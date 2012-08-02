@@ -28,7 +28,7 @@ _undefined = j.Undefined()
 
 MODULE_VAR = '$m'
 MODULE_VAR_id = id(MODULE_VAR)
-IMPORT_TMP_VAR = '_$_import'
+IMPORT_TMP_VAR = '$p'
 IMPORT_TMP_VAR_id = id(IMPORT_TMP_VAR)
 CLS_DEF_VAR = '$i'
 CLS_DEF_VAR_id = id('$i')

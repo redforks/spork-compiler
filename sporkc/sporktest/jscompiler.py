@@ -12,7 +12,7 @@ from spork.jscompiler import compile, get_module_filename
 from spork.io import IOUtil
 import spork.virtual_fs as vir_fs
 
-module_prefix = "var _$_import%(v)s;" \
+module_prefix = "var $p%(v)s;" \
     "if(__builtin__._module_loaded('%(m)s')){return;}"\
     "var $m=new __builtin__.module('%(m)s','%(f)s.py');"
 
@@ -189,7 +189,7 @@ class JSCompilerTest(JSCompilerTestBase):
 
         # __builtin__ module does not enable check_global, 
         # __builtin__ local variable is global variable
-        self.do_raw_test("(function(){var _$_import;var $m={};"
+        self.do_raw_test("(function(){var $p;var $m={};"
                 '$m.__debug__=true;'
                 "$m.__file__='__builtin__.py';"
                 '$m.a;'
@@ -197,7 +197,7 @@ class JSCompilerTest(JSCompilerTestBase):
                 'a', module='__builtin__', check_global=True)
 
     def test_package_var(self):
-        self.do_test("var _$_import;"
+        self.do_test("var $p;"
             "if(__builtin__._module_loaded('sf.test')){return;}"
             "var $m=new __builtin__.module('sf.test','sf/test.py');"
             "__builtin__.import_('sf').test=$m;"
@@ -1301,12 +1301,12 @@ def f():
 
     def test_import_from_in_func(self):
         self.do_no_arg_func("var b;"
-                "_$_import=__builtin__.import_('a');"
-                "b=_$_import.b;",
+                "$p=__builtin__.import_('a');"
+                "b=$p.b;",
             '\n from a import b', debug=False)
         self.do_no_arg_func("var c;"
-                "_$_import=__builtin__.import_('a');"
-                "c=_$_import.b;",
+                "$p=__builtin__.import_('a');"
+                "c=$p.b;",
             '\n from a import b as c', debug=False)
 
     def test_import_in_func(self):
@@ -1332,32 +1332,32 @@ def f():
 
     def test_import_from(self):
         t = self.t
-        t("_$_import=__builtin__.import_('a');"
-            "$m.d=__builtin__._valid_symbol('a','d',_$_import.d);", 'from a import d')
+        t("$p=__builtin__.import_('a');"
+            "$m.d=__builtin__._valid_symbol('a','d',$p.d);", 'from a import d')
         t("__builtin__.import_('a');"
-            "_$_import=__builtin__.import_('a.b');"
-            "$m.c=__builtin__._valid_symbol('a.b','d',_$_import.d);"
-            "$m.ee=__builtin__._valid_symbol('a.b','ee',_$_import.ee);", 
+            "$p=__builtin__.import_('a.b');"
+            "$m.c=__builtin__._valid_symbol('a.b','d',$p.d);"
+            "$m.ee=__builtin__._valid_symbol('a.b','ee',$p.ee);",
             'from a.b import d as c, ee')
 
-        t("_$_import=__builtin__.import_('a');$m.d=_$_import.d;", 'from a import d', debug=False)
+        t("$p=__builtin__.import_('a');$m.d=$p.d;", 'from a import d', debug=False)
         t("__builtin__.import_('a');"
-            "_$_import=__builtin__.import_('a.b');"
-            "$m.c=_$_import.d;"
-            "$m.ee=_$_import.ee;",
+            "$p=__builtin__.import_('a.b');"
+            "$m.c=$p.d;"
+            "$m.ee=$p.ee;",
             'from a.b import d as c, ee', debug=False)
 
-        t("_$_import=__builtin__.import_('a');"
-                "__builtin__._import_all_from_module($m,_$_import);",
+        t("$p=__builtin__.import_('a');"
+                "__builtin__._import_all_from_module($m,$p);",
                 'from a import *')
-        t("__builtin__.import_('a');_$_import=__builtin__.import_('a.b');"
-                "__builtin__._import_all_from_module($m,_$_import);",
+        t("__builtin__.import_('a');$p=__builtin__.import_('a.b');"
+                "__builtin__._import_all_from_module($m,$p);",
                 'from a.b import *')
 
     def test_auto_import_parent_package(self):
         def do_test(expected, module):
             back = self.compile('', module, debug=False)
-            expected = '(function(){var _$_import;' + expected
+            expected = '(function(){var $p;' + expected
             assert back.startswith(expected), back
 
         do_test("if(__builtin__._module_loaded('a.b')){return;}"
@@ -1548,20 +1548,20 @@ def f():
         self.t('', 'assert True, "abc"', debug=False)
 
     def test_emb_py_src(self):
-        self.do_test("var _$_import;"
+        self.do_test("var $p;"
                 "if(__builtin__._module_loaded('t.a')){return;}"
                 "var $m=new __builtin__.module('t.a','t/a.py');"
                 "__builtin__.import_('t').a=$m;",
                 'pass', module='t.a')
 
-        self.do_test("var _$_import;"
+        self.do_test("var $p;"
                 "if(__builtin__._module_loaded('t')){return;}"
                 "var $m=new __builtin__.module('t','t.py');"
                 "$m.__src__='pass'.splitlines();",
                 'pass', embsrc=True) 
 
     def test_src_map(self):
-        self.do_test("  var _$_import;\n"
+        self.do_test("  var $p;\n"
             "  if (__builtin__._module_loaded('t')) {\n    return;\n  }\n"
             "  var $m = new __builtin__.module('t', 't.py');\n"
             '  $m.a = 1;\n'
@@ -1574,7 +1574,7 @@ JS("""line 2;
 line 3;
 """)
 3;'''
-        self.do_test("  var _$_import;\n"
+        self.do_test("  var $p;\n"
             "  if (__builtin__._module_loaded('t')) {\n    return;\n  }\n"
             "  var $m = new __builtin__.module('t', 't.py');\n"
             '  line 2;\n'
@@ -1585,13 +1585,13 @@ line 3;
             debug=True, embsrc=False, pretty=True, srcmap=True)
 
     def test_builtin_module(self):
-        self.do_raw_test("(function(){var _$_import;var $m={};"
+        self.do_raw_test("(function(){var $p;var $m={};"
                 '$m.__debug__=true;'
                 "$m.__file__='__builtin__.py';"
                 '})();',
                 '', module='__builtin__')
 
-        self.do_raw_test("(function(){var _$_import;var $m={};"
+        self.do_raw_test("(function(){var $p;var $m={};"
                 '$m.__debug__=false;'
                 "$m.__file__='__builtin__.py';"
                 '})();',

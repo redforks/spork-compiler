@@ -1154,6 +1154,14 @@ def _get_items_by_slice(arr, len, index):
         ''')
     return r
 
+@no_arg_check
+def _fast_get_item(arr, index, cls):
+    result = JS('arr[index]')
+    if result is NotImplemented:
+        if JS('index >= arr.length'):
+            raise IndexError(cls + ' index out of range')
+    return result
+
 class list(object):
     def __init__(self, data=None):
         JS("""
@@ -1266,11 +1274,7 @@ class list(object):
 
     def __fastgetitem__(self, index):
         ''' `index' always be positive int, used by jscompiler only '''
-        result = JS('this.l[index]')
-        if result is NotImplemented:
-            if JS('index >= this.l.length'):
-                raise IndexError('list index out of range')
-        return result
+        return _fast_get_item(self.l, index, 'list')
 
     def __setitem__(self, index, value):
         if isinstance(index, slice):
@@ -1451,11 +1455,7 @@ class tuple(object):
 
     def __fastgetitem__(self, index):
         ''' `index' always be positive int, used by jscompiler only '''
-        result = JS('this.l[index]')
-        if result is NotImplemented:
-            if JS('index >= this.l.length'):
-                raise IndexError('list index out of range')
-        return result
+        return _fast_get_item(self.l, index, 'tuple')
 
     def __len__(self):
         return JS('this.l.length')

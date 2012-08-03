@@ -101,6 +101,8 @@ class Attribute(Expr):
         # assume all javascript .length attribute returns a num
         if self.attr == 'length':
             return EXPR_TYPE_NUM
+        if self.attr == '__name__':
+            return EXPR_TYPE_STR
 
 class Undefined(Singleton, Expr, Literal): pass
 class Null(Singleton, Expr, Literal): pass

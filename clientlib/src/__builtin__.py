@@ -1496,20 +1496,10 @@ class tuple(object):
         return self.__repr__()
 
     def __repr__(self):
-        s = "("
-        JS("""
-        for (var i=0; i < self.l.length; i++) {
-            s += $m.repr(self.l[i]);
-            if (i < self.l.length - 1) {
-                s += ", ";
-            }
-        }
-        if (self.l.length === 1) {
-            s += ",";
-        }
-        s += ")";
-        """)
-        return s
+        inner = self.l.join(', ')
+        if len(self) == 1:
+            inner += ','
+        return '(' + inner + ')'
 
     __hash = None
     def __hash__(self):

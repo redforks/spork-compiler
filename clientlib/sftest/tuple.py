@@ -97,3 +97,8 @@ class TupleTests(TestCase):
         self.assertEqual(0, s.index(1), '0')
         self.assertError(lambda: s.index(2), ValueError, 
             'tuple.index(x): x not in list')
+
+    def test_str(self):
+        self.assertEqual('()', str(()))
+        self.assertEqual('(1,)', str((1,)))
+        self.assertEqual('(1, 2)', str((1,2)))

@@ -212,3 +212,11 @@ class ListTests(TestCase):
         s = [2, 1, 3]
         s.sort(key=lambda x: x, reverse=True)
         self.assertEqual([3, 2, 1], s)
+
+    def test_str(self):
+        self.assertEqual('[]', str([]))
+        self.assertEqual('[1]', str([1]))
+        self.assertEqual('[1, 2]', str([1,2]))
+        self.assertEqual('[]', repr([]))
+        self.assertEqual('[1]', repr([1]))
+        self.assertEqual('[1, 2]', repr([1,2]))

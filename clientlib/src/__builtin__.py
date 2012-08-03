@@ -1367,18 +1367,9 @@ class list(object):
         return self.l
 
     def __str__(self):
-        return self.__repr__()
+        return '[' + self.l.join(', ') + ']'
 
-    def __repr__(self):
-        s = '['
-        first = True
-        for item in self:
-            if first:
-                first = False
-            else:
-                s += ', '
-            s += repr(item)
-        return s + ']'
+    __repr__ = __str__
 
     def __add__(self, other):
         result = list(self)

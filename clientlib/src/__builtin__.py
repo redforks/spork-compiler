@@ -1709,31 +1709,12 @@ class dict(object):
         return dict(self.items())
 
     def __str__(self):
-        return self.__repr__()
+        buf = JS('[]')
+        for k, v in self.iteritems():
+            buf.push(repr(k) + ': ' + repr(v))
+        return '{' + buf.join(', ') + '}'
 
-    def __repr__(self):
-        JS("""
-        var key;
-        var keys = [];
-        for (key in self.d) {
-            if (self.d.hasOwnProperty(key)) {
-                keys.push(key);
-            }
-        }
-        """)
-
-        s = JS('"{"')
-        JS("""
-        for (var i=0; i<keys.length; i++) {
-            var v = self.d[keys[i]];
-            s += $m.repr(v[0]) + ": " + $m.repr(v[1]);
-            if (i < keys.length-1) {
-                s += ", ";
-            }
-        }
-        s += "}";
-        """)
-        return s
+    __repr__ = __str__
 
     def __hash__(self):
         raise TypeError, "unhashable type: 'dict'"

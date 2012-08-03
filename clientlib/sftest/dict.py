@@ -156,3 +156,11 @@ class DictTests(TestCase):
         d = {1: 'a', 2: 'c'}
         d.update({2: 'b', 3: 'c'})
         self.assertEqual({1:'a', 2:'b', 3:'c'}, d)
+
+    def test_str(self):
+        self.assertEqual('{}', str({}))
+        self.assertEqual('{1: 2}', str({1: 2}))
+        self.assertEqual('{1: 2, 3: 4}', str({1: 2, 3: 4}))
+        self.assertEqual('{}', repr({}))
+        self.assertEqual('{1: 2}', repr({1: 2}))
+        self.assertEqual('{1: 2, 3: 4}', repr({1: 2, 3: 4}))

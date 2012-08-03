@@ -926,17 +926,11 @@ class C(object):
         t = self.t
         t(
             '$m.s=0;'
-            '$t1=$m.foo(10).__iter__();'
-            'try{'
-                'while(true){'
-                    '$m.i=$t1.next();'
-                    "$m.s=$m.s.__add__($m.i);"
-                '}'
-            '}catch($t2){'
-                "if($t2.__name__!=='StopIteration'){"
-                    'throw $t2;'
-                '}'
-            '}', 's=0\nfor i in foo(10):s+=i', vars=('$t1',))
+            '$t1=$b._iter_init($m.foo(10));'
+            'while(($m.i=$t1())!==undefined){'
+                '$m.s=$m.s.__add__($m.i);'
+            '}',
+            's=0\nfor i in foo(10):s+=i', vars=('$t1',))
 
         with self.assertError(NotImplementedError, 'else in loop is not implemented.'):
             t('', 'for i in range(10):pass\nelse:pass;')
@@ -944,26 +938,17 @@ class C(object):
         self.do_no_arg_func(
                 'var i,s,$t1;'
                 's=0;'
-                '$t1=$m.foo(10).__iter__();'
-                'try{'
-                    'while(true){'
-                        'i=$t1.next();'
-                        's=s.__add__(i);'
-                    '}'
-                '}catch($t2){'
-                    "if($t2.__name__!=='StopIteration'){"
-                    'throw $t2;'
-                    '}'
+                '$t1=$b._iter_init($m.foo(10));'
+                'while((i=$t1())!==undefined){'
+                    's=s.__add__(i);'
                 '}',
             '\n s=0\n for i in foo(10):s+=i')
 
         self.do_no_arg_func(
                 'var i,s,j,$t1,$t2;'
                 's=0;'
-                '$t1=$m.foo(10).__iter__();'
-                'try{'
-                    'while(true){'
-                        '$t2=$t1.next();'
+                '$t1=$b._iter_init($m.foo(10));'
+                'while(($t2=$t1())!==undefined){'
                         'i=$t2.__fastgetitem__(0);'
                         'j=$t2.__fastgetitem__(1);'
                         'if($t2.__len__()!==2){'
@@ -971,39 +956,20 @@ class C(object):
                         "'too many values to unpack'"
                         ');}'
                         's=s.__add__(i);'
-                    '}'
-                '}catch($t3){'
-                    "if($t3.__name__!=='StopIteration'){"
-                    'throw $t3;'
-                    '}'
                 '}',
             '\n s=0\n for i,j in foo(10):s+=i')
 
     def test_nested_for(self):
         self.do_no_arg_func(
-                'var i,s,j,$t1,$t2;'
-                's=0;'
-                '$t1=$m.foo(10).__iter__();'
-                'try{'
-                    'while(true){'
-                        'i=$t1.next();'
-                        '$t2=$m.foo(2).__iter__();'
-                        'try{'
-                            'while(true){'
-                                'j=$t2.next();'
-                                's=s.__add__(i.__add__(j));'
-                            '}'
-                        '}catch($t3){'
-                            "if($t3.__name__!=='StopIteration'){"
-                                'throw $t3;'
-                            '}'
-                        '}'
-                    '}'
-                '}catch($t4){'
-                    "if($t4.__name__!=='StopIteration'){"
-                        'throw $t4;'
-                    '}'
-                '}',
+            'var i,s,j,$t1,$t2;'
+            's=0;'
+            '$t1=$b._iter_init($m.foo(10));'
+            'while((i=$t1())!==undefined){'
+                '$t2=$b._iter_init($m.foo(2));'
+                'while((j=$t2())!==undefined){'
+                    's=s.__add__(i.__add__(j));'
+                '}'
+            '}',
 
             '''
     s=0
@@ -1377,16 +1343,9 @@ def f():
             '(function(){'
                 'var $t1,$t2,i;'
                 '$t1=$b.list();'
-                '$t2=$m.foo(10).__iter__();'
-                'try{'
-                    'while(true){'
-                        'i=$t2.next();'
-                        '$t1.append(i);'
-                    '}'
-                '}catch($t3){'
-                    "if($t3.__name__!=='StopIteration'){"
-                        'throw $t3;'
-                    '}'
+                '$t2=$b._iter_init($m.foo(10));'
+                'while((i=$t2())!==undefined){'
+                    '$t1.append(i);'
                 '}'
             'return $t1;})();', '[i for i in foo(10)]')
 
@@ -1394,17 +1353,10 @@ def f():
             '(function(){'
                 'var $t1,$t2,i;'
                 '$t1=$b.list();'
-                '$t2=$m.foo(10).__iter__();'
-                'try{'
-                    'while(true){'
-                        'i=$t2.next();'
-                        'if(!$b.eq(i,10)){'
-                            '$t1.append(i);'
-                        '}'
-                    '}'
-                '}catch($t3){'
-                    "if($t3.__name__!=='StopIteration'){"
-                        'throw $t3;'
+                '$t2=$b._iter_init($m.foo(10));'
+                'while((i=$t2())!==undefined){'
+                    'if(!$b.eq(i,10)){'
+                        '$t1.append(i);'
                     '}'
                 '}'
             'return $t1;})();', '[i for i in foo(10) if i != 10]')
@@ -1413,25 +1365,11 @@ def f():
             '(function(){'
                 'var $t1,$t2,x,$t3,y;'
                 '$t1=$b.list();'
-                '$t2=$m.foo(10).__iter__();'
-                'try{'
-                    'while(true){'
-                        'x=$t2.next();'
-                        '$t3=$m.bar(20).__iter__();'
-                        'try{'
-                            'while(true){'
-                                'y=$t3.next();'
-                                '$t1.append(x.__add__(y));'
-                            '}'
-                        '}catch($t4){'
-                            "if($t4.__name__!=='StopIteration'){"
-                                'throw $t4;'
-                            '}'
-                        '}'
-                    '}'
-                '}catch($t5){'
-                    "if($t5.__name__!=='StopIteration'){"
-                        'throw $t5;'
+                '$t2=$b._iter_init($m.foo(10));'
+                'while((x=$t2())!==undefined){'
+                    '$t3=$b._iter_init($m.bar(20));'
+                    'while((y=$t3())!==undefined){'
+                        '$t1.append(x.__add__(y));'
                     '}'
                 '}'
             'return $t1;})();'
@@ -1441,29 +1379,15 @@ def f():
             '(function(){'
                 'var $t1,$t2,x,$t3,y;'
                 '$t1=$b.list();'
-                '$t2=$m.foo(10).__iter__();'
-                'try{'
-                    'while(true){'
-                        'x=$t2.next();'
-                        'if($b.__lt(x,5)){'
-                            '$t3=$m.bar(20).__iter__();'
-                            'try{'
-                                'while(true){'
-                                    'y=$t3.next();'
-                                    'if($b.eq(y,3)){'
-                                        '$t1.append(x);'
-                                    '}'
-                                '}'
-                            '}catch($t4){'
-                                "if($t4.__name__!=='StopIteration'){"
-                                    'throw $t4;'
-                                '}'
+                '$t2=$b._iter_init($m.foo(10));'
+                'while((x=$t2())!==undefined){'
+                    'if($b.__lt(x,5)){'
+                        '$t3=$b._iter_init($m.bar(20));'
+                        'while((y=$t3())!==undefined){'
+                            'if($b.eq(y,3)){'
+                                '$t1.append(x);'
                             '}'
                         '}'
-                    '}'
-                '}catch($t5){'
-                    "if($t5.__name__!=='StopIteration'){"
-                        'throw $t5;'
                     '}'
                 '}'
             'return $t1;})();'

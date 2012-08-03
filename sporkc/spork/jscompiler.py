@@ -1397,21 +1397,25 @@ class AstVisitor(object):
             return None
 
         def as_normal():
-            right = j.Call(ATTR(self.visit(iter), '__iter__'), ())
-            itervardeclare, itervar = self._unique_var(right)
+            assert isinstance(target, (ast.Tuple, ast.Name))
 
-            right = j.Call(ATTR(itervar, 'next'), ())
-            stats = self._do_assign([target], right)
-            stats.extend(self._visit_stats(body))
-            w = j.While(j.True_(),(stats,))
-            errorvar = id(self._unique_name())
-            catch = j.TryHandler(errorvar, (
-                j.If(j.Not_identical(ATTR(errorvar, '__name__'),
-                   j.Str('StopIteration')),
-                (j.Throw(errorvar),), None),))
-            trystat = j.Try((w,), catch)
+            is_tuple = isinstance(target, ast.Tuple)
+            right = j.Call(SF_ATTR('_iter_init'), (self.visit(iter),))
+            itervardeclare, iterfunc = self._unique_var(right)
 
-            return (_clo(itervardeclare, node), _clo(trystat, node))
+            right = j.Call(iterfunc, ())
+            tmp_var = self._unique_var()[1] if is_tuple else target
+            itervar_assign = self._do_assign([tmp_var], right)
+            assert len(itervar_assign) == 1
+            itervar_assign = itervar_assign[0].expr
+            itervar = itervar_assign.left
+            cond_expr = j.Not_identical(itervar_assign, j.Undefined())
+
+            stats = self._do_assign([target], tmp_var) if is_tuple else []
+            stats += self._visit_stats(body)
+            w = j.While(cond_expr, stats)
+
+            return _clo(itervardeclare, node), _clo(w, node)
 
         return try_optimize() or as_normal()
 

@@ -52,6 +52,33 @@ def open(filename, mode=None, bufsize=None):
 def execfile(filename):
     __func_not_implemented('execfile')
 
+@no_arg_check
+def _iter_init(iterable):
+    JS('''
+    if (iterable.l) {
+        return (function(arr) {
+            var i=-1, len=arr.length;
+            return function() {
+                ++i;
+                if (i<len) {
+                    return arr[i];
+                }
+            };
+        })(iterable.l);
+    }
+    return (function(iterator) {
+        return function() {
+            try {
+                return iterator.next();
+            } catch (e) {
+                if (e.__name__ !== 'StopIteration') {
+                    throw e;
+                }
+            }
+        };
+    })(iterable.__iter__());
+    ''')
+
 def filter(func, iterable):
     JS('''
     if (iterable.l === undefined) {

@@ -81,10 +81,14 @@ def _iter_init(iterable):
 
 def filter(func, iterable):
     JS('''
-    if (iterable.l !== undefined) {
-        var r = iterable.l.filter(function(x, i, arr) {
-            return func(x);
-        });
+    if (iterable.l) {
+        var v,arr=iterable.l,i=0,len=arr.length,r=[];
+        for (i=0;i<len;i++) {
+            v=arr[i];
+            if ($m._bool(func(v))) {
+                r.push(v);
+            }
+        }
         return $m.list(r);
     }
     ''')

@@ -33,7 +33,18 @@ def _cleanup_for_test():
     if error:
         raise error
 
+# add_cleanup_step() is not identical to TestCase.addCleanup() added in
+# python 2.7.
+#
+#  1. add_cleanup_step() is not a TestCase method, it can be called any where
+#  2. add_cleanup_step() has no side effect, if test mode not enabled
 def add_cleanup_step(step):
+
+    # NOTE: do not use __debug__, test mode is not debug mode!!!
+    # If use __debug__ and if run program in debug mode (very normal to run
+    # python program without -O option), __cleanup_steps list may blow-up,
+    # because no code to clean-up it regularly.
+
     if _test:
         __cleanup_steps.append(step)
 

@@ -220,22 +220,20 @@ def vars(obj = NotImplemented):
 
 def zip(*args):
     result = []
-    if len(args) == 0:
+    l = len(args)
+    if l == 0:
         return result
 
-    iters = [iter(item) for item in args]
+    iters = [_iter_init(item) for item in args]
     while True:
-        item = []
+        item = JS('Array(l)')
+        i = 0
         for it in iters:
-            JS('try {')
-            item.append(it.next())
-            JS('''} catch(e) {
-                if (e.__name__ !== 'StopIteration') {
-                    throw e;
-                }
-                return result;
-            }
-            ''')
+            val = it()
+            if val is NotImplemented:
+                return result
+            JS('item[i] = val;')
+            i += 1
         result.append(tuple(item))
     return result
 

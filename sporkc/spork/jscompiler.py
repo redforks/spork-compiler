@@ -595,7 +595,7 @@ class AstVisitor(object):
     def visit_With(self, node):
         body, expr, enter_var = node.body, node.context_expr, \
             node.optional_vars
-        stat, context_var = self._unique_var(self.visit(expr))
+        stat, context_var = self._unique_var_n_init(self.visit(expr))
         result = [stat]
 
         enter = ATTR(context_var, '__enter__')
@@ -605,10 +605,10 @@ class AstVisitor(object):
         enter = j.Expr_stat(enter)
         result.append(enter)
 
-        exc, exc_var = self._unique_var(j.True_())
+        exc, exc_var = self._unique_var_n_init(j.True_())
         result.append(exc)
 
-        catch_var = self._unique_var()[1]
+        catch_var = self._unique_var()
         catch_body = []
         catch_body.append(j.AssignStat(exc_var, j.False_()))
         exit_func = ATTR(context_var, '__exit__')
@@ -723,10 +723,13 @@ class AstVisitor(object):
         self._var_idx += 1
         return '$t' + str(self._var_idx)
 
-    def _unique_var(self, initval = None):
+    def _unique_var(self):
         varname = self._unique_name()
         self.scope.add(varname)
-        var = id(varname)
+        return id(varname)
+
+    def _unique_var_n_init(self, initval):
+        var = self._unique_var()
         return j.AssignStat(var, initval), var
 
     def _do_assign(self, targets, value):
@@ -777,7 +780,7 @@ class AstVisitor(object):
         if j.isliteral(value) or isinstance(value, j.Name):
             result = []
         else:
-            tmpvardeclare, tmpvar = self._unique_var(value)
+            tmpvardeclare, tmpvar = self._unique_var_n_init(value)
             tmpvardeclare = _clo(tmpvardeclare, value)
             value = tmpvar
             result = [tmpvardeclare]
@@ -989,7 +992,7 @@ class AstVisitor(object):
         if _is_compatible_bool(left):
             return js_logic_op(left, right)
 
-        assign, first_var = self._unique_var(left)
+        assign, first_var = self._unique_var_n_init(left)
         assign = assign.expr
         bool_first = _do_force_bool(first_var)
         cond_expr = condition_op(bool_first, right, first_var)
@@ -1385,7 +1388,7 @@ class AstVisitor(object):
                 init = j.Assign(self.visit(target), j.Num(0))
                 stats = []
                 if not isinstance(stop, ast.Num):
-                    stat, stop = self._unique_var(self.visit(stop))
+                    stat, stop = self._unique_var_n_init(self.visit(stop))
                     stats.append(stat)
                 else:
                     stop = self.visit(stop)
@@ -1401,10 +1404,10 @@ class AstVisitor(object):
 
             is_tuple = isinstance(target, ast.Tuple)
             right = j.Call(SF_ATTR('_iter_init'), (self.visit(iter),))
-            itervardeclare, iterfunc = self._unique_var(right)
+            itervardeclare, iterfunc = self._unique_var_n_init(right)
 
             right = j.Call(iterfunc, ())
-            tmp_var = self._unique_var()[1] if is_tuple else target
+            tmp_var = self._unique_var() if is_tuple else target
             itervar_assign = self._do_assign([tmp_var], right)
             assert len(itervar_assign) == 1
             itervar_assign = itervar_assign[0].expr
@@ -1689,7 +1692,7 @@ class AstVisitor(object):
                     raise NotImplementedError(
                         'List competency with more than 1 vars is not supported.')
 
-            resultvar = self._unique_var()[1]
+            resultvar = self._unique_var()
             stats = []
             stats.append(j.AssignStat(id(resultvar.id), 
                 j.Call(SF_ATTR('list'), ())))

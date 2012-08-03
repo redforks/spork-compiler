@@ -136,7 +136,10 @@ def locals():
 def map(func, iterable):
     JS('''
     if (iterable.l) {
-        var l = iterable.l.map(function(x, i, arr) {return func(x);});
+        var i=0, arr = iterable.l, len=arr.length; l=Array(len);
+        for (;i<len;i++) {
+            l[i] = func(arr[i]);
+        }
         return $m.list(l);
     }
     ''')

@@ -1237,11 +1237,15 @@ class list(object):
             if step == 1:
                 r = JS('this.l.slice(lower, upper)')
             else:
-                @no_arg_check
-                def filter(ele, idx, arr):
-                    offset = idx - lower
-                    return offset >= 0 and idx < upper and (offset % step) == 0
-                r = JS('this.l.filter(filter)')
+                r = JS('[]')
+                JS('''
+                var i=lower,arr=this.l;
+                for (;i<upper;i++) {
+                    if ((i - lower) % step == 0) {
+                        r.push(arr[i]);
+                    }
+                }
+                ''')
             return list(r)
         else:
             raise TypeError('list indices must be integers')

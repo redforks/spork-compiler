@@ -1129,6 +1129,14 @@ def _append_iterable_to_JS_array(arr, iterable):
         arr.push(item)
     return arr
 
+@no_arg_check
+def _to_real_idx(len, index, type):
+    if index < 0:
+        index += len
+    if index >= len or index < 0:
+        raise IndexError(type + ' index out of range')
+    return index
+
 class list(object):
     def __init__(self, data=None):
         JS("""
@@ -1228,11 +1236,7 @@ class list(object):
         return True
 
     def _to_real_idx(self, index):
-        if index < 0:
-            index += len(self)
-        if index >= len(self) or index < 0:
-            raise IndexError('list index out of range')
-        return index
+        return _to_real_idx(len(self), index, 'list')
 
     def __getitem__(self, index):
         if isNumber(index):
@@ -1434,10 +1438,7 @@ class tuple(object):
 
     def __getitem__(self, index):
         if isNumber(index):
-            if index < 0:
-                index += len(self)
-            if index >= len(self) or index < 0:
-                raise IndexError('list index out of range')
+            index = _to_real_idx(len(self), index, 'tuple')
             return JS('this.l[index]')
         elif isinstance(index, slice):
             lower, upper, step = index.indices(len(self))

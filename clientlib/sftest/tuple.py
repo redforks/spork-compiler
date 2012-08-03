@@ -59,7 +59,7 @@ class TupleTests(TestCase):
         self.assertEqual((7, 8), lst[7:-1], '[7, 8]')
         self.assertEqual((2, 3, 4), lst[-8:5], '[2, 3, 4]')
         self.assertError(lambda: lst[10], IndexError, 
-                'list index out of range')
+                'tuple index out of range')
         self.assertEqual((0, 2, 4, 6, 8), lst[::2])
         self.assertEqual((1, 4, 7), lst[1::3])
 

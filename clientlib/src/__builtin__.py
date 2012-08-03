@@ -1162,6 +1162,24 @@ def _fast_get_item(arr, index, cls):
             raise IndexError(cls + ' index out of range')
     return result
 
+@no_arg_check
+def _iter_JS_array(arr):
+    JS("""
+    var i = 0;
+    """)
+    return JS("""{
+        'next': function() {
+            if (i >= arr.length) {
+                throw $m.StopIteration;
+            }
+            return arr[i++];
+        },
+        '__iter__': function() {
+            return this;
+        }
+    }
+    """)
+
 class list(object):
     def __init__(self, data=None):
         JS("""
@@ -1319,22 +1337,7 @@ class list(object):
         return self.__find(value) >= 0
 
     def __iter__(self):
-        JS("""
-        var i = 0;
-        var l = this.l;
-        """)
-        return JS("""{
-            'next': function() {
-                if (i >= l.length) {
-                    throw $m.StopIteration;
-                }
-                return l[i++];
-            },
-            '__iter__': function() {
-                return this;
-            }
-        }
-        """)
+        return _iter_JS_array(self.l)
 
     def reverse(self):
         JS("""this.l.reverse();""")
@@ -1481,22 +1484,7 @@ class tuple(object):
         return self.__find(value) >= 0
 
     def __iter__(self):
-        JS("""
-        var i = 0;
-        var l = this.l;
-        """)
-        return JS("""{
-            'next': function() {
-                if (i >= l.length) {
-                    throw $m.StopIteration;
-                }
-                return l[i++];
-            },
-            '__iter__': function() {
-                return this;
-            }
-        }
-        """)
+        return _iter_JS_array(self.l)
 
     def getArray(self):
         """

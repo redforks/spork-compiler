@@ -1116,6 +1116,19 @@ def str(text):
     ''')
     return JS('String(text)')
 
+@no_arg_check
+def _iterable_to_JS_array(iterable):
+    return _append_iterable_to_JS_array(JS('[]'), iterable)
+
+@no_arg_check
+def _append_iterable_to_JS_array(arr, iterable):
+    if not isIteratable(iterable):
+        raise TypeError(repr(iterable) + ' is not iterable')
+
+    for item in iterable:
+        arr.push(item)
+    return arr
+
 class list(object):
     def __init__(self, data=None):
         JS("""
@@ -1126,8 +1139,7 @@ class list(object):
         } else if (data.l) {
             this.l = data.l.slice(0);
         } else {
-            this.l = [];
-            this.extend(data);
+            this.l = $m._iterable_to_JS_array(data);
         }
         """)
 
@@ -1140,15 +1152,9 @@ class list(object):
             Array.prototype.push.apply(this.l, data);
         } else if (data.l) {
             Array.prototype.push.apply(this.l, data.l);
-        } else if ($m.isIteratable(data)) {
-            var val, iter=$m._iter_init(data);
-            while ((val=iter())!==undefined) {
-                this.l.push(val);
-            }
         } else {
-        """)
-        raise TypeError(repr(data) + ' is not iterable')
-        JS('}')
+            $m._append_iterable_to_JS_array(this.l, data);
+        }""")
 
     def remove(self, value):
         JS("""
@@ -1382,22 +1388,8 @@ class tuple(object):
             this.l = data.slice(0);
         } else if (data.l) {
             this.l = data.l.slice(0);
-        } else if ($m.isIteratable(data)) {
-            this.l = [];
-            var i = 0;
-            var iter=data.__iter__();
-            try {
-                while (true) {
-                    this.l[i++]=iter.next();
-                }
-            }
-            catch (e) {
-                if (e.__name__ !== 'StopIteration') {
-                    throw e;
-                }
-            }
         } else {
-            this.l = [];
+            this.l = $m._iterable_to_JS_array(data);
         }
         """)
 

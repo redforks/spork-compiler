@@ -102,3 +102,6 @@ class TupleTests(TestCase):
         self.assertEqual('()', str(()))
         self.assertEqual('(1,)', str((1,)))
         self.assertEqual('(1, 2)', str((1,2)))
+        self.assertEqual('()', repr(()))
+        self.assertEqual('(1,)', repr((1,)))
+        self.assertEqual('(1, 2)', repr((1,2)))

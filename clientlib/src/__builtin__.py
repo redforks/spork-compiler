@@ -1493,13 +1493,12 @@ class tuple(object):
         return self.l
 
     def __str__(self):
-        return self.__repr__()
-
-    def __repr__(self):
         inner = self.l.join(', ')
         if len(self) == 1:
             inner += ','
         return '(' + inner + ')'
+
+    __repr__ = __str__
 
     __hash = None
     def __hash__(self):

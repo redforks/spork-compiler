@@ -1350,16 +1350,14 @@ class list(object):
 
     def __repr__(self):
         s = '['
-        JS("""
-        for (var i=0; i < self.l.length; i++) {
-            s += $m.repr(self.l[i]);
-            if (i < self.l.length - 1) {
-                s += ", ";
-            }
-        }
-        s += "]";
-        """)
-        return s
+        first = True
+        for item in self:
+            if first:
+                first = False
+            else:
+                s += ', '
+            s += repr(item)
+        return s + ']'
 
     def __add__(self, other):
         result = list(self)

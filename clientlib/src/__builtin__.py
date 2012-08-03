@@ -1137,6 +1137,23 @@ def _to_real_idx(len, index, type):
         raise IndexError(type + ' index out of range')
     return index
 
+@no_arg_check
+def _get_items_by_slice(arr, len, index):
+    lower, upper, step = index.indices(len)
+    if step == 1:
+        r = JS('arr.slice(lower, upper)')
+    else:
+        r = JS('[]')
+        JS('''
+        var i=lower;
+        for (;i<upper;i++) {
+            if ((i - lower) % step == 0) {
+                r.push(arr[i]);
+            }
+        }
+        ''')
+    return r
+
 class list(object):
     def __init__(self, data=None):
         JS("""
@@ -1243,20 +1260,7 @@ class list(object):
             index = self._to_real_idx(index)
             return JS('this.l[index]')
         elif isinstance(index, slice):
-            lower, upper, step = index.indices(len(self))
-            if step == 1:
-                r = JS('this.l.slice(lower, upper)')
-            else:
-                r = JS('[]')
-                JS('''
-                var i=lower,arr=this.l;
-                for (;i<upper;i++) {
-                    if ((i - lower) % step == 0) {
-                        r.push(arr[i]);
-                    }
-                }
-                ''')
-            return list(r)
+            return list(_get_items_by_slice(self.l, len(self), index))
         else:
             raise TypeError('list indices must be integers')
 
@@ -1441,18 +1445,9 @@ class tuple(object):
             index = _to_real_idx(len(self), index, 'tuple')
             return JS('this.l[index]')
         elif isinstance(index, slice):
-            lower, upper, step = index.indices(len(self))
-            if step == 1:
-                r = JS('this.l.slice(lower, upper)')
-            else:
-                @no_arg_check
-                def filter(ele, idx, arr):
-                    offset = idx - lower
-                    return offset >= 0 and idx < upper and (offset % step) == 0
-                r = JS('this.l.filter(filter)')
-            return tuple(r)
+            return tuple(_get_items_by_slice(self.l, len(self), index))
         else:
-            raise TypeError('list indices must be integers')
+            raise TypeError('tuple indices must be integers')
 
     def __fastgetitem__(self, index):
         ''' `index' always be positive int, used by jscompiler only '''

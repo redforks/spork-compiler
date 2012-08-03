@@ -1141,20 +1141,14 @@ class list(object):
         } else if (data.l) {
             Array.prototype.push.apply(this.l, data.l);
         } else if ($m.isIteratable(data)) {
-            var iter=data.__iter__();
-            var i=this.l.length;
-            try {
-                while (true) {
-                    this.l[i++]=iter.next();
-                }
+            var val, iter=$m._iter_init(data);
+            while ((val=iter())!==undefined) {
+                this.l.push(val);
             }
-            catch (e) {
-                if (e.__name__ !== 'StopIteration') {
-                    throw e;
-                }
-            }
-        }
+        } else {
         """)
+        raise TypeError(repr(data) + ' is not iterable')
+        JS('}')
 
     def remove(self, value):
         JS("""

@@ -167,19 +167,6 @@ def next(seq, default=NotImplemented):
     JS('throw e;}')
 
 def reduce(func, iterable, initializer=None):
-    JS('''
-    if (iterable.l !== undefined) {
-        if (initializer === null) {
-            return iterable.l.reduce(function(prev, cur, i, arr) {
-                return func(prev, cur);
-            });
-        } else {
-            return iterable.l.reduce(function(prev, cur, i, arr) {
-                return func(prev, cur);
-            }, initializer);
-        }
-    }
-    ''')
     itera = iter(iterable)
     result = next(itera) if initializer is None else initializer
     for item in itera:

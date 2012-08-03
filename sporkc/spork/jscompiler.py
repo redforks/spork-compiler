@@ -774,7 +774,7 @@ class AstVisitor(object):
             f = funcs.get(type(t), do_normal)
             return [next(f(t, value))]
 
-        if j.isliteral(value):
+        if j.isliteral(value) or isinstance(value, j.Name):
             result = []
         else:
             tmpvardeclare, tmpvar = self._unique_var(value)

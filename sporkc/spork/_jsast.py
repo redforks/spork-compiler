@@ -347,7 +347,7 @@ class Call(Expr):
             if func_name in ['len', 'int']:
                 return EXPR_TYPE_NUM
 
-            if func_name == 'str':
+            if func_name in ['str', 'repr']:
                 return EXPR_TYPE_STR
 
             if func_name in {'bool', 'hasattr', 'isinstance', 'eq', '__gt',

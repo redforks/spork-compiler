@@ -709,6 +709,7 @@ class ExprTypeTest(TestCase):
         self.assert_num(mk_builtin_call('len'))
         self.assert_num(mk_builtin_call('int'))
         self.assert_str(mk_builtin_call('str'))
+        self.assert_str(mk_builtin_call('repr'))
 
         for f in ['bool', 'hasattr', 'isinstance', 'eq', '__gt', '__ge',
                 '__lt', '__le', 'isString', 'isIteratable']:

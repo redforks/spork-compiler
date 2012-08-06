@@ -37,6 +37,7 @@ class Expr(Ast):
     ''' Base class of all Expr ast '''
 
     _expr_type = None
+    precedence = 0
     def _get_expr_type(self):
         return self._expr_type
 
@@ -90,6 +91,7 @@ class Str(Expr, Literal):
         return EXPR_TYPE_STR
 
 class Attribute(Expr):
+    precedence = 1
     def __init__(self, value, attr):
         super(Attribute, self).__init__()
         self.value = value
@@ -107,7 +109,7 @@ class Attribute(Expr):
 class Undefined(Singleton, Expr, Literal): pass
 class Null(Singleton, Expr, Literal): pass
 class This(Singleton, Expr, Literal): pass
-class SrcMap(Singleton, Ast): pass
+class SrcMap(Singleton, Expr): pass
 
 class True_(Singleton, Expr, Literal):
     def _get_expr_type(self):
@@ -144,6 +146,28 @@ class Binexpr(Expr):
         super(Binexpr, self).__init__()
         self.left, self.right = left, right
         self.op = op
+        if op in ['%', '/', '*']:
+            self.precedence = 3
+        elif op in ['+', '-']:
+            self.precedence = 4
+        elif op in ['<<', '>>', '>>>']:
+            self.precedence = 5
+        elif op in ['>', '<', '>=', '<=']:
+            self.precedence = 6
+        elif op in  ['==', '!=', '===', '!==']:
+            self.precedence = 7
+        elif op == '&':
+            self.precedence = 8
+        elif op == '^':
+            self.precedence = 9
+        elif op == '|':
+            self.precedence = 10
+        elif op == '&&':
+            self.precedence = 11
+        elif op == '||':
+            self.precedence = 12
+        elif op in ['=', '+=', '-=', '/=', '*=', '%=']:
+            self.precedence = 14
 
     _fields = ('left', 'right')
 
@@ -189,6 +213,7 @@ Bit_rshift_zero_fill = partial(Binexpr, '>>>')
 Bit_lshift = partial(Binexpr, '<<')
 
 class Unary_expr(Expr):
+    precedence = 2
     def __init__(self, op, expr):
         super(Unary_expr, self).__init__()
         self.expr = expr
@@ -215,6 +240,7 @@ Logic_not = partial(Unary_expr, '!')
 Bit_inv = partial(Unary_expr, '~')
 
 class Unary_postfix_expr(Expr):
+    precedence = 2
     def __init__(self, op, expr):
         super(Unary_postfix_expr, self).__init__()
         self.expr = expr
@@ -230,6 +256,7 @@ Inc_postfix = partial(Unary_postfix_expr, '++')
 Dec_postfix = partial(Unary_postfix_expr, '--')
 
 class Conditional_op(Expr):
+    precedence = 13
     def __init__(self, value, first, second):
         super(Conditional_op, self).__init__()
         self.value = value
@@ -294,7 +321,9 @@ class While(Ast):
 
     _fields = ('cond', 'stats')
 
-class Empty(Ast): pass
+class Empty(Ast):
+    precedence = 0
+
 noneast = Empty()
 
 class DeclareVar(Ast):
@@ -322,6 +351,7 @@ class File(Ast):
     _fields = ('stats',)
 
 class New_object(Expr):
+    precedence = 1
     def __init__(self, type, args):
         super(New_object, self).__init__()
         self.type, self.args = type, args
@@ -337,6 +367,8 @@ def _is_builtin(expr):
     return isinstance(expr, Name) and expr.id == BUILTIN_VAR
 
 class Call(Expr):
+    precedence = 1
+
     def __init__(self, val, args):
         super(Call, self).__init__()
         self.val, self.args = val, args
@@ -382,6 +414,7 @@ class Struct_item(Ast):
     _fields = ('expr',)
 
 class CommaOp(Expr):
+    precedence = 15
     def __init__(self, items):
         super(CommaOp, self).__init__()
         self.items = items
@@ -408,6 +441,7 @@ class Js(Ast):
     @property
     def expr_type(self):
         return None
+    precedence = 0
 
 class Throw(Ast):
     def __init__(self, expr):
@@ -424,7 +458,8 @@ class Continue(Singleton, Ast):
     def __init__(self):
         super(Continue, self).__init__()
 
-class FunctionDef(Ast):
+class FunctionDef(Expr):
+    precedence = 2
     def __init__(self, args, body, name=None):
         super(FunctionDef, self).__init__()
         self.args, self.body, self.name = args, body, name
@@ -460,6 +495,7 @@ class Finally(Ast):
     _fields = 'body',
 
 class Subscript(Expr):
+    precedence = 1
     def __init__(self, value, idx):
         super(Subscript, self).__init__()
         self.value, self.idx = value, idx

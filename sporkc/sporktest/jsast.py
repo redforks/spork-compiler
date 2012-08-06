@@ -180,6 +180,7 @@ class JSRenderTest(RenderTestBase):
                 id('b'), 
                 a(id('c'), n(1))
                 )))
+        t('a=(b,c)', a(id('a'), j.CommaOp([id('b'), id('c')])))
 
     def test_expr_stat(self):
         t = self.t
@@ -194,33 +195,33 @@ class JSRenderTest(RenderTestBase):
     def test_plus(self):
         t = self.t
         t('1+2', j.Plus(n(1), n(2)))
-        t('1+(2+3)', j.Plus(n(1), j.Plus(n(2), n(3))))
-        t('(1+2)+3', j.Plus(j.Plus(n(1), n(2)), n(3)))
-        t('1+(2+(3+4))', j.Plus(n(1), j.Plus(n(2), j.Plus(n(3), n(4)))))
+        t('1+2+3', j.Plus(n(1), j.Plus(n(2), n(3))))
+        t('1+2+3', j.Plus(j.Plus(n(1), n(2)), n(3)))
+        t('1+2+3+4', j.Plus(n(1), j.Plus(n(2), j.Plus(n(3), n(4)))))
 
     def test_sub(self):
         t = self.t
         t('1-2', j.Sub(n(1), n(2)))
-        t('1-(2+3)', j.Sub(n(1), j.Plus(n(2), n(3))))
-        t('(1-2)+3', j.Plus(j.Sub(n(1), n(2)), n(3)))
+        t('1-2+3', j.Sub(n(1), j.Plus(n(2), n(3))))
+        t('1-2+3', j.Plus(j.Sub(n(1), n(2)), n(3)))
 
     def test_mul(self):
         t = self.t
         t('1*2', j.Mul(n(1), n(2)))
         t('1*(2+3)', j.Mul(n(1), j.Plus(n(2), n(3))))
-        t('(1*2)+3', j.Plus(j.Mul(n(1), n(2)), n(3)))
+        t('1*2+3', j.Plus(j.Mul(n(1), n(2)), n(3)))
 
     def test_div(self):
         t = self.t
         t('1/2', j.Div(n(1), n(2)))
         t('1/(2+3)', j.Div(n(1), j.Plus(n(2), n(3))))
-        t('(1/2)+3', j.Plus(j.Div(n(1), n(2)), n(3)))
+        t('1/2+3', j.Plus(j.Div(n(1), n(2)), n(3)))
 
     def test_mod(self):
         t = self.t
         t('1%2', j.Mod(n(1), n(2)))
         t('1%(2+3)', j.Mod(n(1), j.Plus(n(2), n(3))))
-        t('(1%2)+3', j.Plus(j.Mod(n(1), n(2)), n(3)))
+        t('1%2+3', j.Plus(j.Mod(n(1), n(2)), n(3)))
 
     def test_unary_neg(self):
         t = self.t
@@ -298,12 +299,12 @@ class JSRenderTest(RenderTestBase):
         t = self.t
         t('a?3:4', j.Conditional_op(id('a'), n(3), n(4))) 
         value = j.Plus(id('a'), n(1))
-        t('(a+1)?3:4', j.Conditional_op(value, n(3), n(4))) 
+        t('a+1?3:4', j.Conditional_op(value, n(3), n(4)))
 
     def test_comma_op(self):
         t = self.t
         t('1,2', j.CommaOp([n(1), n(2)]))
-        t('1,(1+2)', j.CommaOp([n(1), j.Plus(n(1), n(2))]))
+        t('1,1+2', j.CommaOp([n(1), j.Plus(n(1), n(2))]))
 
     def test_parenthesis_op(self):
         self.t('(1)', j.ParenthesisOp(j.Num(1)))
@@ -370,6 +371,7 @@ class JSRenderTest(RenderTestBase):
         t('f(d,3)', f(id('f'), [id('d'), n(3)]))
         t('(1+2)()', f(j.Plus(n(1), n(2)), ()))
         t('(function(){})()', f(j.FunctionDef((),()),()))
+        t('f((1,2),2)', f(id('f'), [j.CommaOp([n(1), n(2)]), n(2)]))
 
     def test_struct(self):
         t = self.t
@@ -387,6 +389,7 @@ class JSRenderTest(RenderTestBase):
     def test_js(self):
         t = self.t
         t('what ever', j.Js('what ever'))
+        t('1+2', j.Plus(n(1), j.Js('2')))
 
     def test_throw(self):
         self.t('throw 1;', j.Throw(n(1)))
@@ -431,7 +434,8 @@ class JSRenderTest(RenderTestBase):
                 j.Null, j.True_, j.False_, j.Array, j.Binexpr,
                 j.Unary_expr, j.Unary_postfix_expr, j.Conditional_op,
                 j.Assign_expr, j.New_object, j.Call, j.Struct, j.Expr,
-                j.Subscript, j.This, j.CommaOp, j.ParenthesisOp]
+                j.Subscript, j.This, j.CommaOp, j.ParenthesisOp,
+                j.FunctionDef, j.SrcMap]
         allasttypes, exprtypes = set(allasttypes), set(exprtypes)
         nonexprtypes = allasttypes - exprtypes
         [self.assertTrue(issubclass(x, j.Expr), repr(x)) for x in exprtypes]
@@ -488,9 +492,9 @@ class JSPrettyRenderTest(RenderTestBase):
     def test_plus(self):
         t = self.t
         t('1 + 2', j.Plus(n(1), n(2)))
-        t('1 + (2 + 3)', j.Plus(n(1), j.Plus(n(2), n(3))))
-        t('(1 + 2) + 3', j.Plus(j.Plus(n(1), n(2)), n(3)))
-        t('1 + (2 + (3 + 4))', j.Plus(n(1), j.Plus(n(2), j.Plus(n(3), n(4)))))
+        t('1 + 2 + 3', j.Plus(n(1), j.Plus(n(2), n(3))))
+        t('1 + 2 + 3', j.Plus(j.Plus(n(1), n(2)), n(3)))
+        t('1 + 2 + 3 + 4', j.Plus(n(1), j.Plus(n(2), j.Plus(n(3), n(4)))))
 
     def test_side_assign(self):
         t = self.t
@@ -501,7 +505,7 @@ class JSPrettyRenderTest(RenderTestBase):
         t = self.t
         t('a ? 3 : 4', j.Conditional_op(id('a'), n(3), n(4))) 
         value = j.Plus(id('a'), n(1))
-        t('(a + 1) ? 3 : 4', j.Conditional_op(value, n(3), n(4))) 
+        t('a + 1 ? 3 : 4', j.Conditional_op(value, n(3), n(4)))
 
     def test_if(self):
         t = self.t

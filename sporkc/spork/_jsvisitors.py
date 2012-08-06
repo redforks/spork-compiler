@@ -70,7 +70,7 @@ class Render(AstVisitor):
             self.visit(value)
             self.write(')')
         else:
-            self._visit_sub_expr(value)
+            self._visit_sub_expr(value, node.precedence)
         self.write('.')
         self.write(attr)
 
@@ -89,7 +89,7 @@ class Render(AstVisitor):
     def visit_This(self, node):
         self.write('this')
 
-    def _visit_list(self, elements, sep = ',', newline=False, as_sub_expr=False):
+    def _visit_list(self, elements, sep = ',', newline=False):
         first = True
         for item in elements:
             if first:
@@ -99,10 +99,12 @@ class Render(AstVisitor):
                     self._writeln(sep)
                 else:
                     self.write(sep)
-            if as_sub_expr:
-                self._visit_sub_expr(item)
-            else:
-                self.visit(item)
+
+            if isinstance(item, j.CommaOp):
+                self.write('(')
+            self.visit(item)
+            if isinstance(item, j.CommaOp):
+                self.write(')')
 
     def visit_Array(self, node):
         self.write('[')
@@ -119,48 +121,57 @@ class Render(AstVisitor):
         self._write_end_stat()
 
     def visit_Binexpr(self, node):
-        self._visit_sub_expr(node.left)
-        self._write_bin_op(node.op)
-        self._visit_sub_expr(node.right)
-        return True
+        left, op, right = node.left, node.op, node.right
+
+        def visit_bin_sub_expr(expr, unary_type):
+            # hack for confusing expression such as:
+            #
+            # i +++ i
+            # i + (-1)
+            # i - (-1)
+
+            if op in ['+', '-'] and\
+                isinstance(expr, unary_type) and\
+                expr.op in ['+', '-', '++', '--']:
+                self.write('(')
+                self.visit(expr)
+                self.write(')')
+            else:
+                self._visit_sub_expr(expr, node.precedence)
+
+        visit_bin_sub_expr(left, j.Unary_postfix_expr)
+        self._write_bin_op(op)
+        visit_bin_sub_expr(right, j.Unary_expr)
 
     def visit_Assign_expr(self, node):
-        self.visit(node.left)
-        self._write_bin_op(node.op)
-        self.visit(node.right)
-        return True
+        return self.visit_Binexpr(node)
 
-    def _visit_sub_expr(self, expr):
+    def _visit_sub_expr(self, expr, my_precedence):
         oldoutput = self.output
         output = self.output = StringIO()
-        needgroup = False
-        try:
-            needgroup = self.visit(expr)
-        finally:
-            self.output = oldoutput
-            if needgroup:
-                self.write('(')
-            self.write_raw(output.getvalue())
-            if needgroup:
-                self.write(')')
+        needgroup = expr.precedence > my_precedence
+        self.visit(expr)
+        self.output = oldoutput
+        if needgroup:
+            self.write('(')
+        self.write_raw(output.getvalue())
+        if needgroup:
+            self.write(')')
 
     def visit_Unary_expr(self, expr):
         self.write(expr.op)
-        self._visit_sub_expr(expr.expr)
-        return True
+        self._visit_sub_expr(expr.expr, expr.precedence)
 
     def visit_Unary_postfix_expr(self, expr):
-        self.visit(expr.expr)
+        self._visit_sub_expr(expr.expr, expr.precedence)
         self.write(expr.op)
-        return True
 
     def visit_Conditional_op(self, node):
-        self._visit_sub_expr(node.value)
+        self._visit_sub_expr(node.value, node.precedence)
         self._write_bin_op('?')
-        self._visit_sub_expr(node.first)
+        self._visit_sub_expr(node.first, node.precedence)
         self._write_bin_op(':')
-        self._visit_sub_expr(node.second)
-        return True
+        self._visit_sub_expr(node.second, node.precedence)
 
     def visit_If(self, node):
         self.write('if')
@@ -223,15 +234,15 @@ class Render(AstVisitor):
 
     def visit_New_object(self, node):
         self.write('new ')
-        self._visit_sub_expr(node.type)
+        self._visit_sub_expr(node.type, node.precedence)
         self.write('(')
         self._visit_list(node.args)
         self.write(')')
 
     def visit_Call(self, node):
-        self._visit_sub_expr(node.val)
+        self._visit_sub_expr(node.val, node.precedence)
         self.write('(')
-        self._visit_list(node.args, as_sub_expr=True)
+        self._visit_list(node.args)
         self.write(')')
 
     def visit_Struct(self, node):
@@ -245,8 +256,7 @@ class Render(AstVisitor):
         self.visit(node.expr)
 
     def visit_CommaOp(self, node):
-        self._visit_list(node.items, as_sub_expr=True)
-        return True
+        self._visit_list(node.items)
 
     def visit_ParenthesisOp(self, node):
         self.write('(')
@@ -279,7 +289,6 @@ class Render(AstVisitor):
         self._write_left_brace()
         self.visit(node.body)
         self._write_right_brace()
-        return True
 
     def visit_Return(self, node):
         if node.expr:
@@ -370,9 +379,9 @@ class DebugRender(Render):
             self.__jslineno += 1
         super(DebugRender, self).write(v)
 
-    def _visit_list(self, elements, sep = ',', newline=False, as_sub_expr=False):
+    def _visit_list(self, elements, sep = ',', newline=False):
         return super(DebugRender, self)._visit_list(elements, sep + ' ',
-                newline, as_sub_expr)
+                newline)
 
     def indent(self):
         self.__indents += '  '

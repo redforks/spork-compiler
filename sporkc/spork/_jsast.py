@@ -350,13 +350,16 @@ class File(Ast):
 
     _fields = ('stats',)
 
-class New_object(Expr):
+class CallBase(Expr):
     precedence = 1
-    def __init__(self, type, args):
-        super(New_object, self).__init__()
-        self.type, self.args = type, args
+    def __init__(self, val, args):
+        super(CallBase, self).__init__()
+        self.val, self.args = val, args
 
-    _fields = ('type', 'args')
+    _fields = ('val', 'args')
+
+class New_object(CallBase):
+    pass
 
 def as_global_func_call(expr):
     if isinstance(expr, Call) and isinstance(expr.val, Attribute) and\
@@ -366,15 +369,7 @@ def as_global_func_call(expr):
 def _is_builtin(expr):
     return isinstance(expr, Name) and expr.id == BUILTIN_VAR
 
-class Call(Expr):
-    precedence = 1
-
-    def __init__(self, val, args):
-        super(Call, self).__init__()
-        self.val, self.args = val, args
-
-    _fields = ('val', 'args')
-
+class Call(CallBase):
     def _get_expr_type(self):
 
         def resolve_builtin_func(func_name):

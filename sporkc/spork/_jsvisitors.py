@@ -234,10 +234,7 @@ class Render(AstVisitor):
 
     def visit_New_object(self, node):
         self.write('new ')
-        self._visit_sub_expr(node.type, node.precedence)
-        self.write('(')
-        self._visit_list(node.args)
-        self.write(')')
+        self.visit_Call(node)
 
     def visit_Call(self, node):
         self._visit_sub_expr(node.val, node.precedence)

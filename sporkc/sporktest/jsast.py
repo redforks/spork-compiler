@@ -70,7 +70,7 @@ class AstFieldsTest(TestCase):
         self.do_test(('stats',), j.File(()))
 
     def test_new_object(self):
-        self.do_test(('type', 'args'), j.New_object(n(1), ()))
+        self.do_test(('val', 'args'), j.New_object(n(1), ()))
 
     def test_call(self):
         self.do_test(('val', 'args'), j.Call(n(1), ()))
@@ -435,7 +435,7 @@ class JSRenderTest(RenderTestBase):
                 j.Unary_expr, j.Unary_postfix_expr, j.Conditional_op,
                 j.Assign_expr, j.New_object, j.Call, j.Struct, j.Expr,
                 j.Subscript, j.This, j.CommaOp, j.ParenthesisOp,
-                j.FunctionDef, j.SrcMap]
+                j.FunctionDef, j.SrcMap, j.CallBase]
         allasttypes, exprtypes = set(allasttypes), set(exprtypes)
         nonexprtypes = allasttypes - exprtypes
         [self.assertTrue(issubclass(x, j.Expr), repr(x)) for x in exprtypes]

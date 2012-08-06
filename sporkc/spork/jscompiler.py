@@ -762,6 +762,7 @@ class AstVisitor(object):
 
         def do_attribute(target, value):
             val, attr = target.value, target.attr
+            attr = _safe_js_id(attr)
             result = j.Call(SF_ATTR('_setattr'), [
                     self.visit(val), j.Str(attr), value])
             yield _clo(j.Expr_stat(result), target)

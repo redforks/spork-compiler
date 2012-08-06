@@ -126,11 +126,8 @@ class JSCompilerTest(JSCompilerTestBase):
         # as id
         t('$m.$const$;', 'const')
 
-        # as attr getattr / setattr support name translate
         t("$b._getattr($m.a,'$const$');", 'a.const')
-
-        # assign to attr
-        t("$b._setattr($m.a,'const',2);", 'a.const = 2')
+        t("$b._setattr($m.a,'$const$',2);", 'a.const = 2')
 
         # as local var / as argument
         # as function name

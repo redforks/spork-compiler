@@ -860,7 +860,6 @@ def getattr(obj, name, default_value=NotImplemented):
 @no_arg_check
 def _setattr(obj, name, value):
     JS('''
-    $name$ = $m._safe_id($name$);
     if (!obj) {
         throw $m.AttributeError("'NoneType' object has no attribute '" + $name$ + "'");
     }
@@ -873,7 +872,7 @@ def _setattr(obj, name, value):
     ''')
 
 def setattr(obj, name, value):
-    return _setattr(obj, name, value)
+    return _setattr(obj, _safe_id(name), value)
 
 def delattr(obj, name):
     JS('''

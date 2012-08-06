@@ -796,6 +796,7 @@ class AstVisitor(object):
         return self._do_assign(node.targets, value)
 
     def _do_getattr(self, expr, attrname):
+        attrname = _safe_js_id(attrname)
         return j.Call(SF_ATTR('_getattr'), [self.visit(expr), j.Str(attrname)])
 
     @_cplo

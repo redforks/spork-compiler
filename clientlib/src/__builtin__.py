@@ -802,7 +802,6 @@ def _safe_id(id):
 def _getattr(obj, name, default_value):
     if (JS('!obj')):
         raise AttributeError("'NoneType' object has no attribute '%s'" % name)
-    name = _safe_id(name)
     result = JS('obj[$name$]')
     if (JS('!obj.hasOwnProperty || obj.hasOwnProperty($name$)')):
         if __debug__:
@@ -856,7 +855,7 @@ def _getattr(obj, name, default_value):
     return fnwrap
 
 def getattr(obj, name, default_value=NotImplemented):
-    return _getattr(obj, name, default_value)
+    return _getattr(obj, _safe_id(name), default_value)
 
 @no_arg_check
 def _setattr(obj, name, value):

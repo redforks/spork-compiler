@@ -127,7 +127,7 @@ class JSCompilerTest(JSCompilerTestBase):
         t('$m.$const$;', 'const')
 
         # as attr getattr / setattr support name translate
-        t("$b._getattr($m.a,'const');", 'a.const')
+        t("$b._getattr($m.a,'$const$');", 'a.const')
 
         # assign to attr
         t("$b._setattr($m.a,'const',2);", 'a.const = 2')

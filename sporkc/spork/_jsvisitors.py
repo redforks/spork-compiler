@@ -143,8 +143,7 @@ class Render(AstVisitor):
         self._write_bin_op(op)
         visit_bin_sub_expr(right, j.Unary_expr)
 
-    def visit_Assign_expr(self, node):
-        return self.visit_Binexpr(node)
+    visit_Assign_expr = visit_Binexpr
 
     def _visit_sub_expr(self, expr, my_precedence):
         oldoutput = self.output

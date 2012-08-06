@@ -804,7 +804,7 @@ def _getattr(obj, name, default_value):
         raise AttributeError("'NoneType' object has no attribute '%s'" % name)
     name = _safe_id(name)
     result = JS('obj[$name$]')
-    if (JS('obj.hasOwnProperty($name$)')):
+    if (JS('!obj.hasOwnProperty || obj.hasOwnProperty($name$)')):
         if __debug__:
             JS('''
             if (result && result.__bind_type__ === 1 && obj.__is_instance__ === false) {

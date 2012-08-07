@@ -894,9 +894,7 @@ def delattr(obj, name):
 
 def dir(obj):
     JS("""
-    return $m.list(Object.keys(obj).filter(function(val, idx, arr) {
-        return obj.hasOwnProperty(val);
-    }));
+    return $m.list(Object.keys(obj));
     """)
 
 class NoneType(object): pass

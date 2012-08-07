@@ -2,9 +2,7 @@
 from __spork__ import JS
 __all__ = 'log', 'debug', 'info', 'warning', 'error'
 
-from sys import platform
-
-if platform == 'ie':
+if JS('!console'):
     def log(msg):
         pass
 

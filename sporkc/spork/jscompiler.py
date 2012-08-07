@@ -1854,39 +1854,20 @@ from os.path import expanduser
 HTML_TEMPLATE_DEBUG = '''<!DOCTYPE html>
 <html>
     <head>
-        <meta http-equiv="X-UA-Compatible" content="chrome=IE9"/>
         <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
         <meta charset="utf-8">
+        <![if gte IE 8]>
         <script type='text/javascript'>
             sflib = '%(sflib)s';
         </script>
 %(preload)s
+        <![endif]>
     </head>
 	<body>
-        <!--[if IE]>
-        <script type="text/javascript" 
-         src="http://ajax.googleapis.com/ajax/libs/chrome-frame/1/CFInstall.min.js"></script>
-
-        <style>
-         .chromeFrameInstallDefaultStyle {
-           width: 100%%; /* default is 800px */
-           border: 5px solid blue;
-         }
-        </style>
-
-        <div id="prompt">
-        </div>
-     
-        <script>
-         // The conditional ensures that this code will only execute in IE,
-         // Therefore we can use the IE-specific attachEvent without worry
-         window.attachEvent("onload", function() {
-           CFInstall.check({
-             mode: "inline", // the default
-             node: "prompt"
-           });
-         });
-        </script>
+        <!--[if lt IE 8]>
+        <h1>Sorry, Internet Explorer 7 and below, can not use this web
+        application. Please use Internet Explorer 8 and up, or Google Chrome,
+        Safari, firefox.
         <![endif]-->
         <pre id='__console__' style='word-wrap:break-word'></pre>
 	</body>
@@ -1896,39 +1877,20 @@ HTML_TEMPLATE_DEBUG = '''<!DOCTYPE html>
 HTML_TEMPLATE = '''<!DOCTYPE html>
 <html>
     <head>
-        <meta http-equiv="X-UA-Compatible" content="chrome=IE9"/>
         <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
         <meta charset='utf-8'>
+        <![if gte IE 9]>
         <script type='text/javascript'>
             sflib = '%(sflib)s';
         </script>
 %(preload)s
+        <![endif]>
     </head>
 	<body>
-        <!--[if IE]>
-        <script type="text/javascript" 
-         src="http://ajax.googleapis.com/ajax/libs/chrome-frame/1/CFInstall.min.js"></script>
-
-        <style>
-         .chromeFrameInstallDefaultStyle {
-           width: 100%%; /* default is 800px */
-           border: 5px solid blue;
-         }
-        </style>
-
-        <div id="prompt">
-        </div>
-     
-        <script>
-         // The conditional ensures that this code will only execute in IE,
-         // Therefore we can use the IE-specific attachEvent without worry
-         window.attachEvent("onload", function() {
-           CFInstall.check({
-             mode: "inline", // the default
-             node: "prompt"
-           });
-         });
-        </script>
+        <!--[if lt IE 8]>
+        <h1>Sorry, Internet Explorer 7 and below, can not use this web
+        application. Please use Internet Explorer 8 and up, or Google Chrome,
+        Safari, firefox.
         <![endif]-->
 	</body>
 </html>

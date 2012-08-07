@@ -21,7 +21,8 @@ else:
         JS('console.error(msg);')
 
     def debug(msg):
-        if JS('!console.debug'):
-            return log(msg)
-        else:
-            JS('console.debug(msg);')
+        if __debug__:
+            if JS('!console.debug'):
+                return log(msg)
+            else:
+                JS('console.debug(msg);')

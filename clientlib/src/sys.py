@@ -2,8 +2,6 @@
 from __spork__ import JS
 from __builtin__ import _loaded_modules as modules
 
-JS('console.log("init sys");')
-
 platform = JS('navigator.userAgent.toLowerCase()')
 
 if 'ie' in platform:

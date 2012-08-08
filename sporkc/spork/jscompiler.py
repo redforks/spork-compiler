@@ -397,6 +397,16 @@ class ModuleName(ast.Name):
 class Scope(object):
     def __init__(self, visitor):
         self.visitor = visitor
+        self._var_idx = 0
+
+    def unique_name(self):
+        self._var_idx += 1
+        return '$t' + str(self._var_idx)
+
+    def unique_var(self):
+        result = self.unique_name()
+        self.add(result)
+        return id(result)
 
     add = nonef
 
@@ -473,6 +483,7 @@ class ListCompScope(ParentedScope):
 class ExceptionHandlerScope(ParentedScope):
     def __init__(self, parent, except_var):
         super(ExceptionHandlerScope, self).__init__(parent)
+        self._var_idx = parent._var_idx
         self.except_var = except_var
 
     def resolve(self, symbol, ctx):
@@ -720,13 +731,10 @@ class AstVisitor(object):
         return j.Call(v, (j.Array(arr),))
 
     def _unique_name(self):
-        self._var_idx += 1
-        return '$t' + str(self._var_idx)
+        return self.scope.unique_name()
 
     def _unique_var(self):
-        varname = self._unique_name()
-        self.scope.add(varname)
-        return id(varname)
+        return self.scope.unique_var()
 
     def _unique_var_n_init(self, initval):
         var = self._unique_var()

@@ -9,13 +9,13 @@ from itertools import izip, islice, chain, repeat
 from copy import copy
 from ConfigParser import SafeConfigParser
 from contextlib import contextmanager
-from .collections import OrderedSet
+from collections import Sequence
 import operator
 
 from . import SporkError
+from .collections import OrderedSet, eat
 import spork._jsast as j
 from .io import IOUtil, read_file
-from .collections import eat
 import spork._jsvisitors
 from ._jsvisitors import Render, DebugRender, escapejs
 from .internal import constf, nonef
@@ -1518,7 +1518,7 @@ class AstVisitor(object):
             members = self._visit_stats(body)
             while members:
                 member = members[0]
-                while isinstance(member, list):
+                while isinstance(member, Sequence):
                     members[0:1] = member
                     member = members[0]
 

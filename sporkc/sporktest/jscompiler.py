@@ -354,13 +354,40 @@ class JSCompilerTest(JSCompilerTestBase):
         "'too many values to unpack');}",
         'a,b=p', debug=True, vars=['$t1'])
 
-        t('$t1=$b.tuple([3,4,5]);'
-          '$m.a=$t1.__fastgetitem__(0);$m.b=$t1.__fastgetitem__(1);'
-          '$m.c=$t1.__fastgetitem__(2);'
-          'if($t1.__len__()!==3){'
-          'throw $b.ValueError('
-          "'too many values to unpack');}",
-          'a,b,c=3,4,5', vars=['$t1'])
+        t('$m.a=3;'
+          '$m.b=4;'
+          '$m.c=5;',
+          'a,b,c=3,4,5')
+
+        t('$m.a=$b.tuple([2,3]);', 'a = 2, 3')
+
+        with self.assertError(SporkError,
+                'too many value to unpack (expected 2), at line 2'):
+            t('', 'a, b = 3, 4, 5')
+
+        t('$t1=$b.tuple([1,2]);'
+            "$b._setattr($m.a,'b',$t1.__fastgetitem__(0));"
+            "$m.c=$t1.__fastgetitem__(1);"
+            'if($t1.__len__()!==2){'
+            'throw $b.ValueError('
+            "'too many values to unpack');}",
+            'a.b, c = 1, 2', vars=['$t1'])
+
+        t('$t1=$b.tuple([1,2]);'
+            "$m.a.__setitem__(0,$t1.__fastgetitem__(0));"
+            "$m.c=$t1.__fastgetitem__(1);"
+            'if($t1.__len__()!==2){'
+            'throw $b.ValueError('
+            "'too many values to unpack');}",
+            'a[0], c = 1, 2', vars=['$t1'])
+
+        t('$t1=$b.tuple([$m.b,$m.a]);'
+            '$m.a=$t1.__fastgetitem__(0);'
+            '$m.b=$t1.__fastgetitem__(1);'
+            'if($t1.__len__()!==2){'
+            'throw $b.ValueError('
+            "'too many values to unpack');}",
+            'a, b = b, a', vars=['$t1'])
 
     def test_merge_var_declar(self):
         self.do_no_arg_func('var a,b;a=1;b=1;', '\n a=1\n b=1')
@@ -713,14 +740,9 @@ class C(object):
             "$m.a.__args__=[null,null,['b']];$m.a.__bind_type__=0;", 
             'def a(b):return b')
         t('$m.a=function a(b){'
-            'var c,d,$t1;'
-            '$t1=$b.tuple([1,2]);'
-            'c=$t1.__fastgetitem__(0);'
-            'd=$t1.__fastgetitem__(1);'
-            'if($t1.__len__()!==2){'
-            'throw $b.ValueError('
-            "'too many values to unpack'"
-            ');}'
+            'var c,d;'
+            'c=1;'
+            'd=2;'
             'return null;};'
             "$m.a.__name__='a';"
             "$m.a.__args__=[null,null,['b']];$m.a.__bind_type__=0;", 

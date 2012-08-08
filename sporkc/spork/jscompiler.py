@@ -732,24 +732,25 @@ class AstVisitor(object):
         var = self._unique_var()
         return j.AssignStat(var, initval), var
 
-    def _do_assign(self, targets, value):
+    def _do_assign(self, target, value):
         def do_subscript(target, value):
             v, slice = target.value, target.slice
             result = j.Expr_stat(j.Call(ATTR(self.visit(v), '__setitem__'),
                     [self.visit(slice), value]))
-            yield _clo(result, target)
+            return _clo(result, target),
 
         def do_normal(target, value):
             if not isinstance(self.scope, FunctionScope):
                 self.scope.add(target.id)
             result = j.AssignStat(self.visit(target), value)
-            yield _clo(result, target)
+            return _clo(result, target),
 
         def do_tuple(target, value):
             n = j.Num
             for idx, item in enumerate(target.elts):
                 right = j.Call(ATTR(value, '__fastgetitem__'), (n(idx),))
-                yield _clo(j.AssignStat(self.visit(item), right), t)
+                for stat in self._do_assign(item, right):
+                    yield stat
             if self.debug:
                 cond_expr = ATTR(value, '__len__')
                 cond_expr = j.Call(cond_expr, ())
@@ -765,7 +766,7 @@ class AstVisitor(object):
             attr = _safe_js_id(attr)
             result = j.Call(SF_ATTR('_setattr'), [
                     self.visit(val), j.Str(attr), value])
-            yield _clo(j.Expr_stat(result), target)
+            return _clo(j.Expr_stat(result), target),
 
         funcs = {
             ast.Subscript: do_subscript,
@@ -773,10 +774,49 @@ class AstVisitor(object):
             ast.Attribute: do_attribute,
             }
 
+        return funcs.get(type(target), do_normal)(target, value)
+
+    def visit_Assign(self, node):
+        class NameVisitor(NodeVisitor):
+            def __init__(self):
+                super(NameVisitor, self).__init__()
+                self.names = set()
+
+            def visit_Name(self, node):
+                self.names.add(node.id)
+
+            @staticmethod
+            def scan(node):
+                visitor = NameVisitor()
+                visitor.visit(node)
+                return visitor.names
+
+        def is_assign_one_by_one(left, value):
+            if isinstance(value, ast.Tuple) and isinstance(left, ast.Tuple):
+                left_len, right_len = len(left.elts), len(value.elts)
+                if left_len > 1:
+                    if right_len != left_len:
+                        fmt = ('too many value to unpack (expected %s),'
+                            ' at line %s')
+                        raise SporkError(fmt % (left_len, node.lineno))
+                    if all(isinstance(x, ast.Name) for x in left.elts):
+                        left_ids = {x.id for x in left.elts}
+                        right_ids = NameVisitor.scan(value)
+                        return left_ids.isdisjoint(right_ids)
+
+        def assign_one_by_one(target, value):
+            pairs = izip(target.elts, value.elts)
+            visit, do_assign = self.visit, self._do_assign
+            return chain.from_iterable(do_assign(left, visit(right))
+                    for left, right in pairs)
+
+        targets, value = node.targets, node.value
+        if len(targets) == 1 and is_assign_one_by_one(targets[0], value):
+            return tuple(assign_one_by_one(targets[0], value))
+
+        value = self.visit(value)
         if len(targets) == 1 and not isinstance(targets[0], ast.Tuple):
-            t = targets[0]
-            f = funcs.get(type(t), do_normal)
-            return [next(f(t, value))]
+            return tuple(self._do_assign(targets[0], value))
 
         if j.isliteral(value) or isinstance(value, j.Name):
             result = []
@@ -787,14 +827,9 @@ class AstVisitor(object):
             result = [tmpvardeclare]
 
         for t in targets:
-            f = funcs.get(type(t), do_normal)
-            result.extend(f(t, value))
+            result.extend(self._do_assign(t, value))
 
         return result
-
-    def visit_Assign(self, node):
-        value = self.visit(node.value)
-        return self._do_assign(node.targets, value)
 
     def _do_getattr(self, expr, attrname):
         attrname = _safe_js_id(attrname)
@@ -1410,13 +1445,13 @@ class AstVisitor(object):
 
             right = j.Call(iterfunc, ())
             tmp_var = self._unique_var() if is_tuple else target
-            itervar_assign = self._do_assign([tmp_var], right)
+            itervar_assign = tuple(self._do_assign(tmp_var, right))
             assert len(itervar_assign) == 1
             itervar_assign = itervar_assign[0].expr
             itervar = itervar_assign.left
             cond_expr = j.Not_identical(itervar_assign, j.Undefined())
 
-            stats = self._do_assign([target], tmp_var) if is_tuple else []
+            stats = list(self._do_assign(target, tmp_var)) if is_tuple else []
             stats += self._visit_stats(body)
             w = j.While(cond_expr, stats)
 

@@ -369,6 +369,9 @@ def as_global_func_call(expr):
 def _is_builtin(expr):
     return isinstance(expr, Name) and expr.id == BUILTIN_VAR
 
+BOOL_GLOBAL_FUNCS = {'bool', 'hasattr', 'isinstance', 'eq',
+    '__gt', '__ge', '__lt', '__le', 'isString', 'isIteratable'}
+
 class Call(CallBase):
     def _get_expr_type(self):
 
@@ -379,8 +382,7 @@ class Call(CallBase):
             if func_name in ['str', 'repr']:
                 return EXPR_TYPE_STR
 
-            if func_name in {'bool', 'hasattr', 'isinstance', 'eq', '__gt',
-                    '__ge', '__lt', '__le', 'isString', 'isIteratable'}:
+            if func_name in BOOL_GLOBAL_FUNCS:
                 return EXPR_TYPE_BOOL
 
         # assume .toString() always return str
@@ -392,6 +394,9 @@ class Call(CallBase):
                 return EXPR_TYPE_STR
             if attr == '__contains__':
                 return EXPR_TYPE_BOOL
+            if self.val.value.expr_type == EXPR_TYPE_STR:
+                if attr in ['startswith', 'endswith']:
+                    return EXPR_TYPE_BOOL
 
 class Struct(Expr):
     def __init__(self, items):

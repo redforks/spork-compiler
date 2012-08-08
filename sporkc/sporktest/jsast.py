@@ -720,6 +720,9 @@ class ExprTypeTest(TestCase):
                 '__lt', '__le', 'isString', 'isIteratable']:
             self.assert_bool(mk_builtin_call(f))
 
+        self.assert_bool(j.Call(j.Attribute(j.Str(''), 'startswith'), ()))
+        self.assert_bool(j.Call(j.Attribute(j.Str(''), 'endswith'), ()))
+
     def assert_num(self, expr):
         self.assertEqual(EXPR_TYPE_NUM, expr.expr_type)
 

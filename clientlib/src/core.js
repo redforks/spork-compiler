@@ -131,57 +131,25 @@ function pyjs__exception_func_unexpected_keyword(func_name, key) {
     throw $b.TypeError(String(func_name + "() got an unexpected keyword argument '" + key + "'"));
 }
 
-function pyjs_kwargs_call(obj, func, star_args, dstar_args, args)
-{
+function pyjs_set_arg_call(obj, func, args) {
     "use strict";
-    var __i, i;
     if (obj !== null) {
         func = obj[func];
-    }
-
-    // Merge dstar_args into args[0]
-    if (dstar_args) {
-        __i = dstar_args.__iter__();
-        try {
-            while (true) {
-                i = __i.next();
-                args[0][i] = dstar_args.__getitem__(i);
-            }
-        } catch (e) {
-            if (e.__name__ !== 'StopIteration') {
-                throw e;
-            }
-        }
-    }
-
-    // Append star_args to args
-    if (star_args) {
-        args = args.concat(star_args.l);
     }
 
     // Now convert args to call_args
     // args = __kwargs, arg1, arg2, ...
     // _args = arg1, arg2, arg3, ... [*args, [**kwargs]]
-    var _args = [];
-    var __args__ = func.__args__;
-    var a, aname, _idx , idx, res;
-    _idx = idx = 1;
+    var _args = [], __args__ = func.__args__, a, aname, _idx = 1, idx = 1, res;
     if (obj === null) {
         if (func.__is_instance__ === false) {
             // Skip first argument in __args__
             _idx ++;
         }
-    } else {
-        if (obj.__is_instance__ === undefined && func.__is_instance__ !== undefined && func.__is_instance__ === false) {
-            // Skip first argument in __args__
-            _idx ++;
-        } else if (func.__bind_type__ > 0) {
-            if (args[1] === undefined || obj.__is_instance__ !== false || args[1].__is_instance__ !== true) {
-                // Skip first argument in __args__
-                _idx ++;
-            }
-        }
+    } else if (func.__bind_type__ > 0) {
+        _idx ++;
     }
+
     for (++_idx; _idx < __args__.length; _idx++, idx++) {
         aname = __args__[_idx][0];
         a = args[0][aname];
@@ -212,6 +180,27 @@ function pyjs_kwargs_call(obj, func, star_args, dstar_args, args)
     _args.push(a);
     res = func.apply(obj, _args);
     return res;
+}
+
+function pyjs_kwargs_call(obj, func, star_args, dstar_args, args)
+{
+    "use strict";
+    var __i, i;
+
+    // Merge dstar_args into args[0]
+    if (dstar_args) {
+        __i = $b._iter_init(dstar_args);
+        while ((i = __i()) !== undefined) {
+            args[0][i] = dstar_args.__getitem__(i);
+        }
+    }
+
+    // Append star_args to args
+    if (star_args) {
+        args = args.concat(star_args.l);
+    }
+
+    return pyjs_set_arg_call(obj, func, args);
 }
 
 function pyjs__class_instance(class_name, module_name) {

@@ -899,7 +899,11 @@ class AstVisitor(object):
             if node.args:
                 arr.extend(self.visit(n) for n in node.args)
             args.append(j.Array(arr))
-            v = id('pyjs_kwargs_call')
+            if node.starargs is None and node.kwargs is None:
+                del args[2:4]
+                v = id('pyjs_set_arg_call')
+            else:
+                v = id('pyjs_kwargs_call')
             return j.Call(v, args)
 
         def optimized_super(expr):

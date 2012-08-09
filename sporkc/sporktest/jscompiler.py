@@ -293,11 +293,11 @@ class JSCompilerTest(JSCompilerTestBase):
         t("''.upper();", "''.upper()")
         t("''.decode('utf8');", "''.decode('utf8')")
         t("''.count('a',1);", "''.count('a', 1)")
-        t("pyjs_kwargs_call('','count',null,null,[{start:1},'a']);", 
+        t("pyjs_set_arg_call('','count',[{start:1},'a']);",
                 "''.count('a', start=1)")
-        t("pyjs_kwargs_call('','count',null,null,[{start:1}]);", 
+        t("pyjs_set_arg_call('','count',[{start:1}]);",
                 "''.count(start=1)")
-        t("pyjs_kwargs_call('','count',null,null,[{sub:'s',start:1}]);", 
+        t("pyjs_set_arg_call('','count',[{sub:'s',start:1}]);",
                 "''.count(sub='s',start=1)")
         t("pyjs_kwargs_call('','count',$b.tuple(['s',1]),null,[{}]);",
                 "''.count(*('s', 1))")
@@ -311,9 +311,9 @@ class JSCompilerTest(JSCompilerTestBase):
     def test_function_call(self):
         t = self.t
         t("$m.len('');", "len('')")
-        t("pyjs_kwargs_call(t,'length',null,null,[{start:1}]);", 
+        t("pyjs_set_arg_call(t,'length',[{start:1}]);",
                 'length(start=1)')
-        t("pyjs_kwargs_call(t,'int',null,null,[{base:2},'11']);",
+        t("pyjs_set_arg_call(t,'int',[{base:2},'11']);",
                 "int('11',base=2)")
         t("pyjs_kwargs_call(t,'int',"
                 "$b.tuple(['11',2]),null,[{}]);",
@@ -341,7 +341,7 @@ class JSCompilerTest(JSCompilerTestBase):
                 "g.__name__='g';"
                 "g.__args__=[null,'args'];"
                 'g.__bind_type__=0;'
-                'pyjs_kwargs_call(null,g,null,null,[{a:1}]);',
+                'pyjs_set_arg_call(null,g,[{a:1}]);',
                 "\n def g(**args):pass\n g(a=1)")
 
     def test_tuple_assign(self):
@@ -1162,7 +1162,7 @@ def f():
         self.do_cls_member(
             "f:pyjs__bind_method('f',function f(){"
                 'var self=this;'
-                "pyjs_kwargs_call($m.$super$($m.Foo,self),'f',null,null,[{a:1}]);"
+                "pyjs_set_arg_call($m.$super$($m.Foo,self),'f',[{a:1}]);"
                 'return null;'
             '}'
             ",1,[null,null,['self']])", '',

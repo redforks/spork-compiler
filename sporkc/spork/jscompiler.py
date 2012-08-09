@@ -807,10 +807,9 @@ class AstVisitor(object):
                         fmt = ('too many value to unpack (expected %s),'
                             ' at line %s')
                         raise SporkError(fmt % (left_len, node.lineno))
-                    if all(isinstance(x, ast.Name) for x in left.elts):
-                        left_ids = {x.id for x in left.elts}
-                        right_ids = NameVisitor.scan(value)
-                        return left_ids.isdisjoint(right_ids)
+                    left_ids = NameVisitor.scan(left)
+                    right_ids = NameVisitor.scan(value)
+                    return left_ids.isdisjoint(right_ids)
 
         def assign_one_by_one(target, value):
             pairs = izip(target.elts, value.elts)

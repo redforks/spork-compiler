@@ -365,29 +365,15 @@ class JSCompilerTest(JSCompilerTestBase):
                 'too many value to unpack (expected 2), at line 2'):
             t('', 'a, b = 3, 4, 5')
 
-        t('$t1=$b.tuple([1,2]);'
-            "$b._setattr($m.a,'b',$t1.__fastgetitem__(0));"
-            "$m.c=$t1.__fastgetitem__(1);"
-            'if($t1.__len__()!==2){'
-            'throw $b.ValueError('
-            "'too many values to unpack');}",
-            'a.b, c = 1, 2', vars=['$t1'])
-
-        t('$t1=$b.tuple([1,2]);'
-            "$m.a.__setitem__(0,$t1.__fastgetitem__(0));"
-            "$m.c=$t1.__fastgetitem__(1);"
-            'if($t1.__len__()!==2){'
-            'throw $b.ValueError('
-            "'too many values to unpack');}",
-            'a[0], c = 1, 2', vars=['$t1'])
-
-        t('$t1=$b.tuple([$m.b,$m.a]);'
+        t('$t1=$b.tuple([0,$m.a]);'
             '$m.a=$t1.__fastgetitem__(0);'
             '$m.b=$t1.__fastgetitem__(1);'
             'if($t1.__len__()!==2){'
             'throw $b.ValueError('
             "'too many values to unpack');}",
-            'a, b = b, a', vars=['$t1'])
+            'a, b = 0, a', vars=['$t1'])
+
+        t("$m.a.__setitem__(0,1);$b._setattr($m.b,'c',2);", 'a[0],b.c=1,2')
 
     def test_merge_var_declar(self):
         self.do_no_arg_func('var a,b;a=1;b=1;', '\n a=1\n b=1')

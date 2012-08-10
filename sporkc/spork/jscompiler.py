@@ -576,6 +576,11 @@ class AstVisitor(object):
                 return j.Struct(items)
             return self.visit(item)
 
+        if len(node.args) != 1:
+            raise SporkError(
+                    "JS() function have exactly 1 argument. line: " +
+                    str(node.lineno))
+
         arg = node.args[0]
         if isinstance(arg, ast.Str):
             return j.Js(node.args[0].s)

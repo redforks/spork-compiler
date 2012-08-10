@@ -1434,6 +1434,10 @@ def f():
         t('\\n', 'from __spork__ import JS as js\njs("\\\\n")')
         t("a", 'import __spork__\n__spork__.JS("a")')
 
+        with self.assertError(SporkError,
+            'JS() function have exactly 1 argument. line: 3'):
+            js_test('', 'JS()')
+
         # create Javascript Array
         js_test("[];", 'JS([])')
         js_test("[1];", 'JS([1])')

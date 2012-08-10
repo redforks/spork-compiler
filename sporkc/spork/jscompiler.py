@@ -587,7 +587,7 @@ class AstVisitor(object):
         elif isinstance(arg, (ast.List, ast.Dict)):
             return visit_item(arg)
         else:
-            raise SporkError('Bad argument for JS function. line: ' +
+            raise SporkError('Bad argument for JS() function. line: ' +
                     str(node.lineno))
 
     def on_import_css(self, node):

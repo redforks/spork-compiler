@@ -1438,6 +1438,10 @@ def f():
             'JS() function have exactly 1 argument. line: 3'):
             js_test('', 'JS()')
 
+        with self.assertError(SporkError,
+            'Bad argument for JS() function. line: 3'):
+            js_test('', 'JS(1)')
+
         # create Javascript Array
         js_test("[];", 'JS([])')
         js_test("[1];", 'JS([1])')

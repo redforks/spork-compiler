@@ -1425,11 +1425,21 @@ def f():
 
     def test_JS(self):
         t = self.t
+        def js_test(expected, py_code):
+            t(expected, 'from __spork__ import JS\n' + py_code)
+
         t("$m.JS('a');", 'JS("a")')
 
-        t("a", 'from __spork__ import JS\nJS("a")')
+        js_test("a", 'JS("a")')
         t('\\n', 'from __spork__ import JS as js\njs("\\\\n")')
         t("a", 'import __spork__\n__spork__.JS("a")')
+
+        # create Javascript Array
+        js_test("[];", 'JS([])')
+        js_test("[1];", 'JS([1])')
+        js_test("[1,$m.a];", 'JS([1,a])')
+        js_test("[1,$m.a,[1]];", 'JS([1,a,[1]])')
+        js_test("[a];", 'JS([JS("a")])')
 
     def test_redefine_symbol(self):
         self.t('$m.NameError=1;', 'NameError = 1')

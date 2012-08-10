@@ -563,7 +563,20 @@ class AstVisitor(object):
         return j.noneast
 
     def on_JS(self, node):
-        return j.Js(node.args[0].s)
+        def visit_item(item):
+            if isinstance(item, ast.List):
+                args = [visit_item(x) for x in item.elts]
+                return j.Array(args)
+            return self.visit(item)
+
+        arg = node.args[0]
+        if isinstance(arg, ast.Str):
+            return j.Js(node.args[0].s)
+        elif isinstance(arg, ast.List):
+            return visit_item(arg)
+        else:
+            raise SporkError('Bad argument for JS function. line: ' +
+                    str(node.lineno))
 
     def on_import_css(self, node):
         _check_arg_count('import_css', 1, node.args)

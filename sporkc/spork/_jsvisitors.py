@@ -7,6 +7,7 @@ except ImportError:
     from StringIO import StringIO
 from itertools import repeat
 from collections import Iterable
+import re
 
 from . import SporkError
 from .collections import eat
@@ -20,6 +21,8 @@ JS_ESCAPES = (
     ('\'', r'\''),
     ('"', r'\"'),
     ) + tuple(('%c' % z, '\\x%02X' % z) for z in xrange(32))
+
+is_js_identity = re.compile(r'^[_a-z$][$\w]*$', re.I).match
 
 def escapejs(value):
     """Hex encodes characters for use in JavaScript strings."""
@@ -250,7 +253,13 @@ class Render(AstVisitor):
         self._write_right_brace()
 
     def visit_Struct_item(self, node):
-        self.write(node.name)
+        name = node.name
+        if not isinstance(name, str) or is_js_identity(name):
+            self.write(name)
+        else:
+            self.write("'")
+            self.write(name)
+            self.write("'")
         self._write_end_space(':')
         self.visit(node.expr)
 

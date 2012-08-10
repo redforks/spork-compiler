@@ -380,6 +380,7 @@ class JSRenderTest(RenderTestBase):
         t('{a:1}', s([k('a', n(1))]))
         t('{a:1,b:{}}', s([k('a', n(1)), k('b', s(()))]))
         t('{1:1,1.1:{}}', s([k(1, n(1)), k(1.1, s(()))]))
+        t("{' a ':1,'1a':2}", s([k(' a ', n(1)), k('1a', n(2))]))
 
     def test_list(self):
         t = self.t

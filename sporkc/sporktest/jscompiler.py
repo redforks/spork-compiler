@@ -1441,6 +1441,11 @@ def f():
         js_test("[1,$m.a,[1]];", 'JS([1,a,[1]])')
         js_test("[a];", 'JS([JS("a")])')
 
+        # create javascript Object/Dict
+        js_test('{};', 'JS({})')
+        js_test("{a:1};", 'JS({"a":1})')
+        js_test("{a:{},b:[]};", 'JS({"a":{},"b":[]})')
+
     def test_redefine_symbol(self):
         self.t('$m.NameError=1;', 'NameError = 1')
 

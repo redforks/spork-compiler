@@ -567,12 +567,19 @@ class AstVisitor(object):
             if isinstance(item, ast.List):
                 args = [visit_item(x) for x in item.elts]
                 return j.Array(args)
+            if isinstance(item, ast.Dict):
+                items = []
+                for k, v in izip(item.keys, item.values):
+                    k = self.visit(k).s
+                    v = visit_item(v)
+                    items.append(j.Struct_item(k, v))
+                return j.Struct(items)
             return self.visit(item)
 
         arg = node.args[0]
         if isinstance(arg, ast.Str):
             return j.Js(node.args[0].s)
-        elif isinstance(arg, ast.List):
+        elif isinstance(arg, (ast.List, ast.Dict)):
             return visit_item(arg)
         else:
             raise SporkError('Bad argument for JS function. line: ' +

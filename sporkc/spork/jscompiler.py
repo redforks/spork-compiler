@@ -570,6 +570,10 @@ class AstVisitor(object):
             if isinstance(item, ast.Dict):
                 items = []
                 for k, v in izip(item.keys, item.values):
+                    if not isinstance(k, ast.Str):
+                        raise SporkError(
+                        'JS() dict key must be str literal. line: ' +
+                        str(k.lineno))
                     k = self.visit(k).s
                     v = visit_item(v)
                     items.append(j.Struct_item(k, v))

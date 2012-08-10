@@ -1454,6 +1454,10 @@ def f():
         js_test("{a:1};", 'JS({"a":1})')
         js_test("{a:{},b:[]};", 'JS({"a":{},"b":[]})')
 
+        with self.assertError(SporkError,
+                'JS() dict key must be str literal. line: 3'):
+            js_test('', 'JS({a:1})')
+
     def test_redefine_symbol(self):
         self.t('$m.NameError=1;', 'NameError = 1')
 

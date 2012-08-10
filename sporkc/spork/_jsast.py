@@ -408,6 +408,8 @@ class Struct(Expr):
 class Struct_item(Ast):
     def __init__(self, name, expr):
         super(Struct_item, self).__init__()
+
+        assert isinstance(name, (str, int, float))
         self.name = name
         self.expr = expr
 

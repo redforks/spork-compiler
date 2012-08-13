@@ -1286,6 +1286,7 @@ class list(object):
         else:
             raise TypeError('list indices must be integers')
 
+    @no_arg_check
     def __fastgetitem__(self, index):
         ''' `index' always be positive int, used by jscompiler only '''
         return _fast_get_item(JS('self.l'), index, 'list')
@@ -1443,6 +1444,7 @@ class tuple(object):
         else:
             raise TypeError('tuple indices must be integers')
 
+    @no_arg_check
     def __fastgetitem__(self, index):
         ''' `index' always be positive int, used by jscompiler only '''
         return _fast_get_item(JS('self.l'), index, 'tuple')

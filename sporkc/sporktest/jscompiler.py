@@ -699,8 +699,9 @@ class C(object):
     def f(self):
         pass
 '''
-        with self.assertRaises(NotImplementedError):
-            self.compile(pycode, argcheck=True)
+        back1 = self.compile(pycode, argcheck=True)
+        back2 = self.compile(pycode, argcheck=False)
+        self.assertEqual(back1, back2)
 
     def test_method_normal_argcheck(self):
         self.do_method_argcheck(self.__js_exact_arg('f', 0), '')

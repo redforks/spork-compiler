@@ -1402,9 +1402,11 @@ class AstVisitor(object):
         method_type = NORMAL
         name, body, args = node.name, node.body, node.args
         decorator_list = node.decorator_list
+        no_arg_check = False
         for decorator in decorator_list[:]:
             if self.__is_spork_func(decorator, 'no_arg_check'):
-                raise NotImplementedError("'no_arg_check' can not put on method")
+                no_arg_check = True
+                decorator_list.remove(decorator)
 
             if isinstance(decorator, ast.Name):
                 if decorator.id == 'staticmethod':
@@ -1416,8 +1418,8 @@ class AstVisitor(object):
 
         stats = []
         stats.extend(funcs[method_type](args.args))
-        argstats, arglist = self._do_visit_arguments(node, self.argcheck,
-                method_type != STATIC)
+        argstats, arglist = self._do_visit_arguments(node,
+                not no_arg_check and self.argcheck, method_type != STATIC)
         stats.extend(argstats)
         stats.extend(self._visit_stats(body))
         if self.scope.locals:

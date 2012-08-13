@@ -1344,7 +1344,7 @@ class AstVisitor(object):
 
         f = j.Call(id('pyjs__bind_func'), (
                 j.Str(j._safe_js_id(node.name)),
-                f, j.Num(0), self.build_js_args(node.args)
+                f, self.build_js_args(node.args)
             ))
         funcvar = self.scope.parent.resolve(node.name, getattr(node, 'ctx',
             None))

@@ -1288,7 +1288,7 @@ class list(object):
 
     def __fastgetitem__(self, index):
         ''' `index' always be positive int, used by jscompiler only '''
-        return _fast_get_item(self.l, index, 'list')
+        return _fast_get_item(JS('self.l'), index, 'list')
 
     def __setitem__(self, index, value):
         if isinstance(index, slice):
@@ -1445,7 +1445,7 @@ class tuple(object):
 
     def __fastgetitem__(self, index):
         ''' `index' always be positive int, used by jscompiler only '''
-        return _fast_get_item(self.l, index, 'tuple')
+        return _fast_get_item(JS('self.l'), index, 'tuple')
 
     def __len__(self):
         return JS('this.l.length')

@@ -95,22 +95,31 @@ class Render(AstVisitor):
     def visit_This(self, node):
         self.write('this')
 
-    def _visit_list(self, elements, sep = ',', newline=False):
+    def _visit_stat_list(self, elements):
         first = True
         for item in elements:
             if first:
                 first = False
             else:
-                if newline:
-                    self._writeln(sep)
-                else:
-                    self.write(sep)
+                self._write_comma()
+                self._writeln('')
+
+            self.visit(item)
+
+    def _visit_expr_list(self, seq, sep=','):
+        first = True
+        for item in seq:
+            if first:
+                first = False
+            else:
+                self.write(sep)
 
             if isinstance(item, j.CommaOp):
                 self.write('(')
-            self.visit(item)
-            if isinstance(item, j.CommaOp):
+                self.visit(item)
                 self.write(')')
+            else:
+                self.visit(item)
 
     def _visit_sequence(self, seq):
         visit = self.visit
@@ -122,7 +131,7 @@ class Render(AstVisitor):
 
     def visit_Array(self, node):
         self.write('[')
-        self._visit_list(node.elms)
+        self._visit_expr_list(node.elms)
         self.write(']')
 
     def visit_Delete_stat(self, node):
@@ -204,7 +213,7 @@ class Render(AstVisitor):
         self._write_end_space('for')
         self.write('(')
         n = j.noneast
-        self._visit_list((node.init or n, node.cond or n, node.inc or n), ';')
+        self._visit_expr_list((node.init or n, node.cond or n, node.inc or n), ';')
         self._write_end_space(')')
         self._write_left_brace()
         self._visit_sequence(node.stats)
@@ -252,12 +261,12 @@ class Render(AstVisitor):
     def visit_Call(self, node):
         self._visit_sub_expr(node.val, node.precedence)
         self.write('(')
-        self._visit_list(node.args)
+        self._visit_expr_list(node.args)
         self.write(')')
 
     def visit_Struct(self, node):
         self._write_left_brace()
-        self._visit_list(node.items, newline=True)
+        self._visit_stat_list(node.items)
         self._write_right_brace()
 
     def visit_Struct_item(self, node):
@@ -272,7 +281,7 @@ class Render(AstVisitor):
         self.visit(node.expr)
 
     def visit_CommaOp(self, node):
-        self._visit_list(node.items)
+        self._visit_expr_list(node.items)
 
     def visit_ParenthesisOp(self, node):
         self.write('(')
@@ -300,7 +309,7 @@ class Render(AstVisitor):
             self.write('(')
         else:
             self.write('function(')
-        self._visit_list(node.args)
+        self._visit_expr_list(node.args)
         self._write_end_space(')')
         self._write_left_brace()
         self._visit_sequence(node.body)
@@ -358,6 +367,9 @@ class Render(AstVisitor):
     def _write_end_stat(self):
         self.write(';')
 
+    def _write_comma(self):
+        self.write(',')
+
     indent = undent = nonef
 
     def visit_SrcMap(self, node):
@@ -390,9 +402,8 @@ class DebugRender(Render):
             self.__jslineno += 1
         super(DebugRender, self).write(v)
 
-    def _visit_list(self, elements, sep = ',', newline=False):
-        return super(DebugRender, self)._visit_list(elements, sep + ' ',
-                newline)
+    def _visit_expr_list(self, seq, sep=','):
+        return super(DebugRender, self)._visit_expr_list(seq, sep + ' ')
 
     def indent(self):
         self.__indents += '  '
@@ -430,6 +441,9 @@ class DebugRender(Render):
     def _writeln(self, v):
         self.write(v)
         self.__newline()
+
+    def _write_comma(self):
+        self.write(', ')
 
     def _write_left_brace(self):
         self.write('{')

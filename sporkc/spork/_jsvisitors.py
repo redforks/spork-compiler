@@ -7,7 +7,7 @@ except ImportError:
     from StringIO import StringIO
 from itertools import repeat
 from collections import Iterable
-import re
+import re, collections
 
 from . import SporkError
 from .collections import eat
@@ -112,6 +112,14 @@ class Render(AstVisitor):
             if isinstance(item, j.CommaOp):
                 self.write(')')
 
+    def _visit_sequence(self, seq):
+        visit = self.visit
+        for item in seq:
+            if isinstance(item, collections.Sequence):
+                self._visit_sequence(item)
+            else:
+                visit(item)
+
     def visit_Array(self, node):
         self.write('[')
         self._visit_list(node.elms)
@@ -184,12 +192,12 @@ class Render(AstVisitor):
         self.visit(node.value)
         self._write_end_space(')')
         self._write_left_brace()
-        self.visit(node.first)
+        self._visit_sequence(node.first)
         self._write_right_brace()
         if node.second is not None:
             self._write_end_space('else')
             self._write_left_brace()
-            self.visit(node.second)
+            self._visit_sequence(node.second)
             self._write_right_brace()
 
     def visit_For(self, node):
@@ -199,7 +207,7 @@ class Render(AstVisitor):
         self._visit_list((node.init or n, node.cond or n, node.inc or n), ';')
         self._write_end_space(')')
         self._write_left_brace()
-        self.visit(node.stats)
+        self._visit_sequence(node.stats)
         self._write_right_brace()
 
     def visit_For_in(self, node):
@@ -210,7 +218,7 @@ class Render(AstVisitor):
         self.visit(node.expr)
         self._write_end_space(')')
         self._write_left_brace()
-        self.visit(node.stats)
+        self._visit_sequence(node.stats)
         self._write_right_brace()
 
     def visit_While(self, node):
@@ -219,7 +227,7 @@ class Render(AstVisitor):
         self.visit(node.cond)
         self._write_end_space(')')
         self._write_left_brace()
-        self.visit(node.stats)
+        self._visit_sequence(node.stats)
         self._write_right_brace()
 
     def visit_DeclareVar(self, node):
@@ -235,7 +243,7 @@ class Render(AstVisitor):
         self._write_end_stat()
 
     def visit_File(self, node):
-        self.visit(node.stats)
+        self._visit_sequence(node.stats)
 
     def visit_New_object(self, node):
         self.write('new ')
@@ -295,7 +303,7 @@ class Render(AstVisitor):
         self._visit_list(node.args)
         self._write_end_space(')')
         self._write_left_brace()
-        self.visit(node.body)
+        self._visit_sequence(node.body)
         self._write_right_brace()
 
     def visit_Return(self, node):
@@ -309,9 +317,9 @@ class Render(AstVisitor):
     def visit_Try(self, node):
         self._write_end_space('try')
         self._write_left_brace()
-        self.visit(node.body)
+        self._visit_sequence(node.body)
         self._write_right_brace()
-        self.visit(node.handlers)
+        self._visit_sequence(node.handlers)
 
     def visit_TryHandler(self, node):
         self._write_end_space('catch')
@@ -319,13 +327,13 @@ class Render(AstVisitor):
         self.visit(node.var)
         self._write_end_space(')')
         self._write_left_brace()
-        self.visit(node.body)
+        self._visit_sequence(node.body)
         self._write_right_brace()
 
     def visit_Finally(self, node):
         self._write_end_space('finally')
         self._write_left_brace()
-        self.visit(node.body)
+        self._visit_sequence(node.body)
         self._write_right_brace()
 
     def visit_Subscript(self, node):
@@ -366,15 +374,10 @@ class DebugRender(Render):
         self._lastpyline = -1
 
     def visit(self, node):
-        method = 'visit_' + node.__class__.__name__
-        if isinstance(node, Iterable):
-            eat(self.visit(n) for n in node)
-        else:
-            if self.__bol and not self.__linenoset:
-                self._lastpyline = node.lineno
-                self.__linenoset = True
-            visitor = getattr(self, method, self.generic_visit)
-            return visitor(node)
+        if self.__bol and not self.__linenoset:
+            self._lastpyline = node.lineno
+            self.__linenoset = True
+        return super(DebugRender, self).visit(node)
 
     def visit_File(self, node):
         self.__linenoset = False

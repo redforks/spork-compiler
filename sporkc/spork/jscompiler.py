@@ -521,8 +521,6 @@ def _expect_str_const_arg(arg):
         raise TypeError('expected str parameter.')
 
 class AstVisitor(object):
-    _html = None
-
     def __init__(self, module_name, options):
         # .__init__ should removed before call AstVisitor
         assert not module_name.endswith('.__init__')

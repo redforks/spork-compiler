@@ -706,6 +706,10 @@ class ExprTypeTest(TestCase):
     def test_wellknown_attr(self):
         self.assert_num(j.Attribute(j.Name('x'), 'length'))
         self.assert_str(j.Attribute(j.Name('x'), '__name__'))
+        _getattr = j.Attribute(j.Name('$b'), '_getattr')
+        self.assert_num(j.Call(_getattr, [j.Str('what ever'), j.Str('length')]))
+        getattr = j.Attribute(j.Name('$b'), 'getattr')
+        self.assert_num(j.Call(getattr, [j.Str('what ever'), j.Str('length')]))
 
     def test_wellknow_func(self):
         self.assert_str(j.Call(j.Attribute(n(0), 'toString'), ()))

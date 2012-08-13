@@ -375,7 +375,7 @@ BOOL_GLOBAL_FUNCS = {'bool', 'hasattr', 'isinstance', 'eq',
 class Call(CallBase):
     def _get_expr_type(self):
 
-        def resolve_builtin_func(func_name):
+        def resolve_builtin_func(func_name, args):
             if func_name in ['len', 'int']:
                 return EXPR_TYPE_NUM
 
@@ -385,11 +385,15 @@ class Call(CallBase):
             if func_name in BOOL_GLOBAL_FUNCS:
                 return EXPR_TYPE_BOOL
 
+            if func_name in ('_getattr', 'getattr'):
+                if isinstance(args[1], Str) and args[1].s == 'length':
+                    return EXPR_TYPE_NUM
+
         # assume .toString() always return str
         if isinstance(self.val, Attribute):
             attr = self.val.attr
             if _is_builtin(self.val.value):
-                return resolve_builtin_func(attr)
+                return resolve_builtin_func(attr, self.args)
             if attr == 'toString':
                 return EXPR_TYPE_STR
             if attr == '__contains__':

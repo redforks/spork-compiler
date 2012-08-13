@@ -543,7 +543,7 @@ class JSCompilerTest(JSCompilerTestBase):
 
     def test_repr_expr(self):
         t = self.t
-        t('$m.repr($m.a);', 'repr(a)')
+        t('$b.repr($m.a);', 'repr(a)')
         t('$b.repr($m.a);', '`a`')
 
     def test_pass(self):

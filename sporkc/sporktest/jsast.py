@@ -382,12 +382,6 @@ class JSRenderTest(RenderTestBase):
         t('{1:1,1.1:{}}', s([k(1, n(1)), k(1.1, s(()))]))
         t("{' a ':1,'1a':2}", s([k(' a ', n(1)), k('1a', n(2))]))
 
-    def test_list(self):
-        t = self.t
-        t('', ())
-        s = j.Expr_stat
-        t('1;a;', [s(n(1)), s(id('a'))])
-
     def test_js(self):
         t = self.t
         t('what ever', j.Js('what ever'))

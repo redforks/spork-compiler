@@ -1566,6 +1566,11 @@ class AstVisitor(object):
                 if isinstance(node, str):
                     return
 
+                if isinstance(node, (tuple, list)):
+                    for item in node:
+                        self.visit(item)
+                    return
+
                 for field in node._fields:
                     val = getattr(node, field)
                     if val is not None:

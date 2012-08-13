@@ -47,13 +47,6 @@ class AstVisitor(object):
     def generic_visit(self, node):
         raise SporkError, 'lack visit method for ' + type(node).__name__
 
-    def visit_list(self, node):
-        v = self.visit
-        for n in node:
-            v(n)
-
-    visit_tuple = visit_list
-
 class Render(AstVisitor):
     def visit_Num(self, node):
         self.write(str(node.n))

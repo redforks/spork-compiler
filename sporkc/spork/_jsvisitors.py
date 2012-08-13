@@ -397,10 +397,10 @@ class DebugRender(Render):
 
     def write(self, v):
         if self.__bol:
-            super(DebugRender, self).write(self.__indents)
+            self.write_raw(self.__indents)
             self.__bol = False
             self.__jslineno += 1
-        super(DebugRender, self).write(v)
+        self.write_raw(v)
 
     def _visit_expr_list(self, seq, sep=','):
         return super(DebugRender, self)._visit_expr_list(seq, sep + ' ')

@@ -310,7 +310,7 @@ class JSCompilerTest(JSCompilerTestBase):
 
     def test_function_call(self):
         t = self.t
-        t("$m.len('');", "len('')")
+        t("$b.len('');", "len('')")
         t("pyjs_set_arg_call(t,'length',[{start:1}]);",
                 'length(start=1)')
         t("pyjs_set_arg_call(t,'int',[{base:2},'11']);",

@@ -422,7 +422,7 @@ class ModuleScope(Scope):
 
     __predefined = {'None': j.Null(), 'True': j.True_(), 'False': j.False_(),
                 'NotImplemented': _undefined}
-    __known_globals = ['isinstance', 'hasattr', 'int', 'str']
+    __known_globals = ['isinstance', 'hasattr', 'int', 'str', 'len']
 
     def add(self, symbol):
         if symbol.startswith('$t'):

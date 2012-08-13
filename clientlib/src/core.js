@@ -219,10 +219,16 @@ function pyjs__class_instance(class_name, module_name) {
 
 function pyjs__bind_method(func_name, func, bind_type, args) {
 "use strict";
+    pyjs__bind_func(func_name, func, bind_type, args);
+    func.__is_method__ = true;
+    return func;
+}
+
+function pyjs__bind_func(func_name, func, bind_type, args) {
+"use strict";
     func.__name__ = func_name;
     func.__bind_type__ = bind_type;
     func.__args__ = args;
-    func.__is_method__ = true;
     return func;
 }
 

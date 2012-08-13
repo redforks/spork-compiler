@@ -1341,21 +1341,15 @@ class AstVisitor(object):
         self._auto_return(stats)
         f = j.FunctionDef(arglist, stats,
                 j._safe_js_id(node.name) if self.debug else None)
+
+        f = j.Call(id('pyjs__bind_func'), (
+                j.Str(j._safe_js_id(node.name)),
+                f, j.Num(0), self.build_js_args(node.args)
+            ))
         funcvar = self.scope.parent.resolve(node.name, getattr(node, 'ctx',
             None))
         j_as = j.AssignStat
-        funcdef = j_as(funcvar, f)
-
-        assign_name = j_as(ATTR(funcvar, '__name__'),
-                j.Str(j._safe_js_id(node.name)))
-
-        assign_args = j_as(ATTR(funcvar, '__args__'),
-                    self.build_js_args(node.args))
-
-        assign_bind_type = j_as(ATTR(funcvar, '__bind_type__'), j.Num(0))
-        return [_clo(n, node) for n in (
-            funcdef, assign_name, assign_args, assign_bind_type
-                )]
+        return _clo(j_as(funcvar, f), node)
         
     def build_js_args(self, args):
         s = j.Str

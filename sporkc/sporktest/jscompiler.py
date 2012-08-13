@@ -131,15 +131,12 @@ class JSCompilerTest(JSCompilerTestBase):
 
         # as local var / as argument
         # as function name
-        t('$m.$do$=function $do$($delete$){'
+        t("$m.$do$=pyjs__bind_func('$do$',function $do$($delete$){"
                 'var $const$;'
                 '$const$=1;'
                 '$delete$=3;'
                 'return null;'
-        '};'
-        "$m.$do$.__name__='$do$';"
-        "$m.$do$.__args__=[null,null,['$delete$']];"
-        '$m.$do$.__bind_type__=0;', 
+        "},0,[null,null,['$delete$']]);",
         'def do(delete): const=1;delete=3')
 
         t('$m.$const$=(function(){'
@@ -325,22 +322,16 @@ class JSCompilerTest(JSCompilerTestBase):
     def test_nested_function_call(self):
         # empty
         self.do_no_arg_func(
-                'var g;g=function g(){return null;};'
-                "g.__name__='g';"
-                'g.__args__=[null,null];'
-                'g.__bind_type__=0;'
-                'g();',
+                "var g;g=pyjs__bind_func('g',function g(){return null;},"
+                '0,[null,null]);g();',
                 "\n def g():pass\n g()")
 
         # kwargs
         self.do_no_arg_func(
-                'var g;g=function g(){'
+                "var g;g=pyjs__bind_func('g',function g(){"
                 'var args=arguments.length>0?arguments[arguments.length-1]:'
                 '$b.__empty_kwarg();'
-                'return null;};'
-                "g.__name__='g';"
-                "g.__args__=[null,'args'];"
-                'g.__bind_type__=0;'
+                "return null;},0,[null,'args']);"
                 'pyjs_set_arg_call(null,g,[{a:1}]);',
                 "\n def g(**args):pass\n g(a=1)")
 
@@ -644,14 +635,11 @@ class JSCompilerTest(JSCompilerTestBase):
             self.__js_at_most_arg('f', 2), '',
             'a,**g')
 
-        self.t('$m.f=function f(){'
+        self.t("$m.f=pyjs__bind_func('f',function f(){"
         + self.__js_at_most_arg('f', 1) +
                 'var g=arguments.length>0?arguments[arguments.length-1]:'
                 '$b.__empty_kwarg();'
-                'return null;};'
-                "$m.f.__name__='f';"
-                "$m.f.__args__=[null,'g'];"
-                "$m.f.__bind_type__=0;", 
+                "return null;},0,[null,'g']);",
                 'def f(**g):pass', argcheck=True)
 
     def __js_at_least_arg(self, funcname, args):
@@ -676,12 +664,11 @@ class JSCompilerTest(JSCompilerTestBase):
 
     def do_no_arg_func(self, expected, pycode, **options):
         if options.get('debug', True):
-            prefix = "$m.f=function f(){" 
+            prefix = "$m.f=pyjs__bind_func('f',function f(){"
         else:
-            prefix = "$m.f=function(){" 
+            prefix = "$m.f=pyjs__bind_func('f',function(){"
 
-        self.t(prefix + expected + "return null;};$m.f.__name__='f';"
-            "$m.f.__args__=[null,null];$m.f.__bind_type__=0;", 
+        self.t(prefix + expected + "return null;},0,[null,null]);",
             'def f():' + pycode, **options)
 
     def do_method_argcheck(self, jscode, pycode):
@@ -719,20 +706,17 @@ class C(object):
     def test_func(self):
         t = self.t
         self.do_no_arg_func('', 'pass')
-        t("$m.a=function a(){"
-            "1;return null;};$m.a.__name__='a';"
-            "$m.a.__args__=[null,null];$m.a.__bind_type__=0;",
+        t("$m.a=pyjs__bind_func('a',function a(){"
+            "1;return null;},0,[null,null]);",
             'def a():1;return None')
-        t("$m.a=function a(b){return b;};$m.a.__name__='a';"
-            "$m.a.__args__=[null,null,['b']];$m.a.__bind_type__=0;", 
+        t("$m.a=pyjs__bind_func('a',function a(b){return b;},"
+            "0,[null,null,['b']]);",
             'def a(b):return b')
-        t('$m.a=function a(b){'
+        t("$m.a=pyjs__bind_func('a',function a(b){"
             'var c,d;'
             'c=1;'
             'd=2;'
-            'return null;};'
-            "$m.a.__name__='a';"
-            "$m.a.__args__=[null,null,['b']];$m.a.__bind_type__=0;", 
+            "return null;},0,[null,null,['b']]);",
             'def a(b):c,d=1,2')
 
     def test_unbounded_local_var(self):
@@ -748,9 +732,8 @@ class C(object):
         self.compile('def f(x):\n a=1\n def g():\n  c=a\n def h():\n  c=a\n')
 
     def test_no_auto_return_after_raise(self):
-        self.t("$m.a=function a(){"
-            "throw $m.TypeError('');};$m.a.__name__='a';"
-            "$m.a.__args__=[null,null];$m.a.__bind_type__=0;",
+        self.t("$m.a=pyjs__bind_func('a',function a(){"
+            "throw $m.TypeError('');},0,[null,null]);",
             'def a():raise TypeError("")')
 
     def test_ignore_func_doc(self):
@@ -758,46 +741,44 @@ class C(object):
 
     def test_func_defaultarg(self):
         t = self.t
-        t("$m.a=function a(a,b){b!==undefined||(b=null);return null;};"
-            "$m.a.__name__='a';$m.a.__args__=[null,null,['a'],['b',null]];$m.a.__bind_type__=0;",
+        t("$m.a=pyjs__bind_func('a',"
+        "function a(a,b){b!==undefined||(b=null);return null;},"
+        "0,[null,null,['a'],['b',null]]);",
             'def a(a,b=None):return None')
-        t("$m.a=function a(c,a,b){a!==undefined||(a=null);"
-                "b!==undefined||(b=1);return null;};"
-            "$m.a.__name__='a';$m.a.__args__=[null,null,['c'],['a',null],['b',1]];$m.a.__bind_type__=0;",
+        t("$m.a=pyjs__bind_func('a',"
+            "function a(c,a,b){a!==undefined||(a=null);"
+                'b!==undefined||(b=1);return null;},'
+                "0,[null,null,['c'],['a',null],['b',1]]);",
             'def a(c,a=None,b=1):return None')
 
     def test_func_varargs(self):
         t = self.t
-        t('$m.a=function a(){'
+        t("$m.a=pyjs__bind_func('a',function a(){"
             'var b=$b.tuple(Array.prototype.slice.call(arguments,0));'
-            "return null;};$m.a.__name__='a';$m.a.__args__=['b',null];"
-            '$m.a.__bind_type__=0;', 
+            "return null;},0,['b',null]);",
             'def a(*b): return None')
-        t('$m.a=function a(b){'
+        t("$m.a=pyjs__bind_func('a',function a(b){"
             'var c=$b.tuple(Array.prototype.slice.call(arguments,1));'
             'c=c.__getitem__(0);'
-            "return null;};$m.a.__name__='a';$m.a.__args__=['c',null,['b']];"
-            '$m.a.__bind_type__=0;', 
+            "return null;},0,['c',null,['b']]);",
             'def a(b,*c): c=c[0]')
 
     def test_func_kargs(self):
         t = self.t
-        t('$m.f=function f(){'
+        t("$m.f=pyjs__bind_func('f',function f(){"
             'var b=arguments.length>0?arguments[arguments.length-1]:'
                 '$b.__empty_kwarg();'
-            "return b;};$m.f.__name__='f';$m.f.__args__=[null,'b'];" 
-            '$m.f.__bind_type__=0;', 
+            "return b;},0,[null,'b']);",
             'def f(**b): return b')
 
-        t('$m.f=function f(){'
+        t("$m.f=pyjs__bind_func('f',function f(){"
             'var b=arguments.length>0?arguments[arguments.length-1]:'
                 '$b.__empty_kwarg();'
                 'b=1;'
-                "return null;};$m.f.__name__='f';$m.f.__args__=[null,'b'];" 
-                '$m.f.__bind_type__=0;', 
+                "return null;},0,[null,'b']);",
                 'def f(**b): b=1')
 
-        t('$m.f=function f(){'
+        t("$m.f=pyjs__bind_func('f',function f(){"
             'var a=$b.tuple(Array.prototype.slice.call('
                 'arguments,0,arguments.length-1));'
            'var b=arguments.length>0?arguments[arguments.length-1]:'
@@ -806,11 +787,10 @@ class C(object):
                 'a.l.push(b);'
                 'b=$b.__empty_kwarg();'
             '}'
-            "return null;};$m.f.__name__='f';$m.f.__args__=['a','b'];" 
-            '$m.f.__bind_type__=0;', 
+            "return null;},0,['a','b']);",
             'def f(*a,**b): return None')
 
-        t('$m.f=function f(a,b){'
+        t("$m.f=pyjs__bind_func('f',function f(a,b){"
            'var c=arguments.length>2?arguments[arguments.length-1]:'
                '$b.__empty_kwarg();'
 		"if(c===undefined){"
@@ -827,11 +807,10 @@ class C(object):
 				'}}'
 		'}}'
         'b!==undefined||(b=1);'
-            "return null;};$m.f.__name__='f';$m.f.__args__=[null,'c',['a'],['b',1]];" 
-            '$m.f.__bind_type__=0;', 
+            "return null;},0,[null,'c',['a'],['b',1]]);",
             'def f(a,b=1,**c): return None')
 
-        t('$m.f=function f(a,b){'
+        t("$m.f=pyjs__bind_func('f',function f(a,b){"
             'var c=$b.tuple(Array.prototype.slice.call('
             'arguments,2,arguments.length-1));'
 		'var d=arguments.length>2?arguments[arguments.length-1]:'
@@ -855,8 +834,7 @@ class C(object):
 				'}'
 			'}}'
 		'}'
-            "return a;};$m.f.__name__='f';$m.f.__args__=['c','d',['a'],['b']];" 
-            '$m.f.__bind_type__=0;', 
+            "return a;},0,['c','d',['a'],['b']]);",
             'def f(a,b,*c,**d): return a')
 
         with self.assertError(NotImplementedError, 
@@ -865,31 +843,25 @@ class C(object):
 
     def test_local_var(self):
         self.t(
-            '$m.foo=function foo(c){'
+            "$m.foo=pyjs__bind_func('foo',function foo(c){"
                 'var s;'
                 's=1;'
                 '$m.a=2;'
                 'c=3;'
                 'return null;'
-            '};'
-            "$m.foo.__name__='foo';"
-            "$m.foo.__args__=[null,null,['c']];"
-            '$m.foo.__bind_type__=0;',
+            "},0,[null,null,['c']]);",
             'def foo(c): s=1;global a;a=2;c=3')
 
     def test_nested_func(self):
         self.do_no_arg_func(
                 'var a,bar;'
                 'a=3;'
-                'bar=function bar(){'
+                "bar=pyjs__bind_func('bar',function bar(){"
                     'var a,b;'
                     'a=4;'
                     'b=1;'
                     'return null;'
-                '};'
-                "bar.__name__='bar';"
-                'bar.__args__=[null,null];'
-                'bar.__bind_type__=0;',
+                '},0,[null,null]);',
             '\n a=3\n def bar():\n  a=4;b=1')
 
     def test_lambda_in_func(self):
@@ -902,7 +874,7 @@ class C(object):
 
     def test_class_in_func(self):
         self.t(
-            '$m.f=function f(val){'
+            "$m.f=pyjs__bind_func('f',function f(val){"
                 'var C;'
                 'C=(function(){'
                     'var $i={'
@@ -913,10 +885,7 @@ class C(object):
                         "pyjs__class_instance('C','t'),$i,"
                         '$m.object);})();'
                 'return C;'
-            '};'
-            "$m.f.__name__='f';"
-            "$m.f.__args__=[null,null,['val']];"
-            '$m.f.__bind_type__=0;',
+            "},0,[null,null,['val']]);",
             'def f(val):\n class C(object):\n'
             '  def g(self):   return val\n'
             ' return C')
@@ -1021,11 +990,10 @@ class C(object):
 
     def test_try_except_in_func(self):
         def valid(jscode, pycode):
-            jscode = '$m.f=function f(){var e;' \
+            jscode = "$m.f=pyjs__bind_func('f',function f(){var e;" \
             'try{}catch($t1)' \
                 '{$t1=$b._errorMapping($t1);'\
-                + jscode + '}return null;};$m.f.__name__=\'f\';'\
-                '$m.f.__args__=[null,null];$m.f.__bind_type__=0;'
+                + jscode + '}return null;},0,[null,null]);'
             pycode = '''
 def f():
     try:

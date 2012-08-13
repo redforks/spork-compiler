@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 
 import os
-from StringIO import StringIO
+try:
+    from cStringIO import StringIO
+except ImportError:
+    from StringIO import StringIO
 
 def change_ext(path, ext):
     ''' change path's ext to new ext 

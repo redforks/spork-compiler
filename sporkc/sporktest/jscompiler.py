@@ -1559,6 +1559,21 @@ line 3;
                 "'module' object has no attribute 'not_ava'"):
             self.t('', 'import __spork__ as sp\nsp.not_ava()')
 
+    def test_private_func(self):
+        import_private = 'from __spork__ import private\n'
+        self.t("foo=pyjs__bind_func('foo',"
+            "function foo(){return null;},[null,null]);",
+            import_private + '@private\ndef foo():  pass',
+            vars=['foo'])
+
+        c, assertError = self.compile, self.assertError
+        with assertError(SporkError,
+            '@private can not on nested function. line: 3'):
+            c(import_private + 'def foo():\n  @private\n  def bar(): pass')
+
+        with assertError(SporkError, '@private can not on method. line: 3'):
+            c(import_private + 'class C(object):\n  @private\n  def bar(self): pass')
+
 class SymbolFileTest(JSCompilerTestBase):
     def setUp(self):
         super(SymbolFileTest, self).setUp()

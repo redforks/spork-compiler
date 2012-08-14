@@ -429,6 +429,9 @@ class ModuleScope(Scope):
         if symbol.startswith('$t'):
             self.locals.add(symbol)
 
+    def add_private(self, symbol):
+        self.locals.add(symbol)
+
     def resolve(self, symbol, ctx):
         if symbol in self.locals:
             return id(symbol)
@@ -615,12 +618,15 @@ class AstVisitor(object):
     def on_no_arg_check(self, node):
         return j.noneast
 
+    on_private = on_no_arg_check
+
     _spork_funcs = {
             'gen_home_html': on_gen_home_html,
             'JS': on_JS,
             'import_css': on_import_css,
             'import_js': on_import_js,
             'no_arg_check': on_no_arg_check,
+            'private': on_private,
             }
 
     del on_gen_home_html, on_import_css, on_JS, on_import_js, on_no_arg_check
@@ -1322,19 +1328,26 @@ class AstVisitor(object):
 
     @function_scope
     def visit_FunctionDef(self, node):
-        def is_no_arg_check_decor(decor_list):
-            return len(decor_list) == 1 and \
-                    self.__is_spork_func(decor_list[0], 'no_arg_check')
-
         self._remove_docstring(node)
 
         if isinstance(self.scope.parent, ClassDefScope):
             return self.visit_MethodDef(node)
 
         argcheck = self.argcheck
-        if node.decorator_list:
-            if is_no_arg_check_decor(node.decorator_list):
+        decorator_list = node.decorator_list
+        for decorator in decorator_list[:]:
+            if self.__is_spork_func(decorator, 'no_arg_check'):
                 argcheck = False
+                decorator_list.remove(decorator)
+            elif self.__is_spork_func(decorator, 'private'):
+                module_scope = self.scope.parent
+                if isinstance(module_scope, ModuleScope):
+                    module_scope.add_private(node.name)
+                else:
+                    raise SporkError(
+                        '@private can not on nested function. line: '
+                        + str(node.lineno))
+                decorator_list.remove(decorator)
             else:
                 raise NotImplementedError, 'function decorator is not supported'
 
@@ -1419,6 +1432,9 @@ class AstVisitor(object):
             if self.__is_spork_func(decorator, 'no_arg_check'):
                 no_arg_check = True
                 decorator_list.remove(decorator)
+            elif self.__is_spork_func(decorator, 'private'):
+                raise SporkError('@private can not on method. line: ' +
+                        str(node.lineno))
 
             if isinstance(decorator, ast.Name):
                 if decorator.id == 'staticmethod':

@@ -137,7 +137,7 @@ function pyjs_set_arg_call(obj, func, args) {
         func = obj[func];
     }
 
-    var c_args = [], d_args = func.__args__, a, aname, d_idx = 2, c_idx = 1;
+    var c_args = [], d_args = func.__args__, flags=d_args[0], a, aname, d_idx = 1, c_idx = 1;
 
     for (; d_idx < d_args.length; d_idx++, c_idx++) {
         aname = d_args[d_idx];
@@ -150,13 +150,13 @@ function pyjs_set_arg_call(obj, func, args) {
         }
     }
 
-    if (d_args[0] !== null) {
+    if (flags & 0x100) {
         for (;c_idx < args.length;c_idx++) {
             c_args.push(args[c_idx]);
         }
     }
 
-    if (d_args[1] !== null) {
+    if (flags & 0x200) {
         a = $b.dict(args[0]);
         a._pyjs_is_kwarg = true;
         c_args.push(a);

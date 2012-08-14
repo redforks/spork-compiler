@@ -1374,7 +1374,12 @@ class AstVisitor(object):
     def build_js_args(self, args, skip_self=False):
         s = j.Str
         vararg, kwarg = args.vararg, args.kwarg
-        arr = [s(n) if n else j.Null() for n in (vararg, kwarg)]
+        v = 0
+        if vararg:
+            v = 0x100
+        if kwarg:
+            v |= 0x200
+        arr = [j.Num(v)]
 
         iter_args = iter(args.args)
         if skip_self:

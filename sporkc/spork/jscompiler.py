@@ -1371,11 +1371,15 @@ class AstVisitor(object):
         j_as = j.AssignStat
         return _clo(j_as(funcvar, f), node)
         
-    def build_js_args(self, args):
+    def build_js_args(self, args, skip_self=False):
         s = j.Str
         vararg, kwarg = args.vararg, args.kwarg
         arr = [s(n) if n else j.Null() for n in (vararg, kwarg)]
-        arr.extend(s(j._safe_js_id(arg.id)) for arg in args.args)
+
+        iter_args = iter(args.args)
+        if skip_self:
+            next(iter_args)
+        arr.extend(s(j._safe_js_id(arg.id)) for arg in iter_args)
         return j.Array(arr)
 
     def _auto_return(self, stats):
@@ -1450,7 +1454,7 @@ class AstVisitor(object):
             j.Str(j._safe_js_id(name)), 
             j.FunctionDef(arglist, stats,
                 j._safe_js_id(name) if self.debug else None), 
-            j.Num(method_type), self.build_js_args(args)
+            j.Num(method_type), self.build_js_args(args, method_type)
             ))
 
         with self._push_scope(self.scope.parent):

@@ -139,10 +139,6 @@ function pyjs_set_arg_call(obj, func, args) {
 
     var c_args = [], d_args = func.__args__, a, aname, d_idx = 2, c_idx = 1;
 
-    if (func.__bind_type__ > 0) {
-        d_idx ++;
-    }
-
     for (; d_idx < d_args.length; d_idx++, c_idx++) {
         aname = d_args[d_idx];
         a = args[0][aname];
@@ -236,8 +232,7 @@ function _do_pyjs__class_function(cls_fn, prop, mro) {
     cls_fn.__mro__ = mro;
     cls_fn.prototype = cls_fn;
     cls_fn.__is_instance__ = false;
-    cls_fn.__args__ = cls_fn.__init__.__args__.slice(0);
-    cls_fn.__args__.splice(2, 1);
+    cls_fn.__args__ = cls_fn.__init__.__args__;
     return cls_fn;
 }
 

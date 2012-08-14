@@ -144,7 +144,7 @@ class JSCompilerTest(JSCompilerTestBase):
         "$do$:pyjs__bind_method('$do$',function $do$(){"
         'return null;'
         '},'
-        "1,[null,null,'self'])};"
+        "1,[null,null])};"
         'return pyjs__class_function_single_base('
             "pyjs__class_instance('$const$','t'),$i,"
             '$m.object);})();',
@@ -879,7 +879,7 @@ class C(object):
                     'var $i={'
                     "g:pyjs__bind_method('g',"
                     "function g(){return val;}"
-                    ",1,[null,null,'self'])};"
+                    ",1,[null,null])};"
                     'return pyjs__class_function_single_base('
                         "pyjs__class_instance('C','t'),$i,"
                         '$m.object);})();'
@@ -1065,7 +1065,7 @@ def f():
             "f:pyjs__bind_method('f',function f(){"
                 'return this;'
             '}'
-            ",1,[null,null,'first'])", '',
+            ",1,[null,null])", '',
             '\n def f(first):  return first')
 
         self.do_cls_member(
@@ -1074,7 +1074,7 @@ def f():
             'b=1;'
 			'return a.__add__(b);'
             '}'
-            ",1,[null,null,'self','a'])", '',
+            ",1,[null,null,'a'])", '',
             '\n def f(self, a):\n  b=1\n  return a+b')
 
         self.do_cls_member(
@@ -1082,7 +1082,7 @@ def f():
             "a!==undefined||(a=1);"
 			'return a.__add__(this);'
             '}'
-            ",1,[null,null,'self','a'])", '',
+            ",1,[null,null,'a'])", '',
             '\n def f(self, a=1):  return a+self')
 
         self.do_cls_member(
@@ -1090,7 +1090,7 @@ def f():
             'var a=$b.tuple(Array.prototype.slice.call(arguments,1));'
 			'return a.__add__(this);'
             '}'
-            ",1,['a',null,'self','b'])", '',
+            ",1,['a',null,'b'])", '',
             '\n def f(self, b, *a):  return a+self')
 
         self.do_cls_member(
@@ -1099,7 +1099,7 @@ def f():
                 'var b=arguments.length>0?arguments[arguments.length-1]:'
                     '$b.__empty_kwarg();'
                         "return null;}"
-                ",1,[null,'b','self'])", '',
+                ",1,[null,'b'])", '',
                 '\n def f(self,**b): pass')
 
         for code in [
@@ -1120,7 +1120,7 @@ class Foo(object):
                 "$m._get_super_method($m.Foo,this,'f')();"
                 'return null;'
             '}'
-            ",1,[null,null,'self'])", '',
+            ",1,[null,null])", '',
             '\n def f(self):  super(Foo, self).f()')
 
         self.do_cls_member(
@@ -1129,7 +1129,7 @@ class Foo(object):
                 "a=$m._get_super_method($m.Foo,this,'f')(1,2);"
                 'return null;'
             '}'
-            ",1,[null,null,'self'])", '',
+            ",1,[null,null])", '',
             '\n def f(self):  a = super(Foo, self).f(1, 2)')
 
         self.do_cls_member(
@@ -1137,7 +1137,7 @@ class Foo(object):
                 "pyjs_set_arg_call($m.$super$($m.Foo,this),'f',[{a:1}]);"
                 'return null;'
             '}'
-            ",1,[null,null,'self'])", '',
+            ",1,[null,null])", '',
             '\n def f(self):  super(Foo, self).f(a=1)')
 
     def test_no_auto_return_after_return_in_method(self):
@@ -1145,7 +1145,7 @@ class Foo(object):
                 "f:pyjs__bind_method('f',"
                 'function f(){'
                 "return 1;}"
-                ",1,[null,null,'self'])", '',
+                ",1,[null,null])", '',
                 '\n def f(self): return 1')
 
     def test_no_auto_return_after_raise_in_method(self):
@@ -1153,7 +1153,7 @@ class Foo(object):
                 "f:pyjs__bind_method('f',"
                 'function f(){'
                 "throw 1;}"
-                ",1,[null,null,'self'])", '',
+                ",1,[null,null])", '',
                 '\n def f(self): raise 1')
 
     def test_static_method(self):
@@ -1182,7 +1182,7 @@ class Foo(object):
                 'var cls=this.prototype;'
                 'return null;'
             '}'
-            ",2,[null,null,'cls'])", '',
+            ",2,[null,null])", '',
             '\n @classmethod\n def f(cls):  pass')
 
         self.do_cls_member(
@@ -1193,7 +1193,7 @@ class Foo(object):
                 'b=1;'
                 'return null;'
             '}'
-            ",2,[null,null,'cls','a'])", '',
+            ",2,[null,null,'a'])", '',
             '\n @classmethod\n'
             ' def f(cls,a=3):  b=1')
 
@@ -1202,14 +1202,14 @@ class Foo(object):
             "f:$m.property(pyjs__bind_method('f',function f(){"
                 'return null;'
             '}'
-            ",1,[null,null,'self']))",
+            ",1,[null,null]))",
 
             '$i.f='
             "$b._getattr($i.f,'setter')"
             "(pyjs__bind_method('f',function f(){"
                 'return null;'
             '}'
-            ",1,[null,null,'self']));",
+            ",1,[null,null]));",
             '\n @property\n def f(self):  pass\n'
             ' @f.setter\n def f(self): pass')
 
@@ -1219,7 +1219,7 @@ class Foo(object):
             "f:pyjs__bind_method('f',function f(){"
                 'return this;'
             '}'
-            ",1,[null,null,'first'])", '',
+            ",1,[null,null])", '',
             '\n g = 1\n def f(first):  return first')
 
     def test_import(self):
@@ -1437,7 +1437,7 @@ class Foo(object):
             "function __init__(){"
                 'return null;'
             '}'
-        ",1,[null,null,'self'])};"
+        ",1,[null,null])};"
             'return pyjs__class_function_single_base('
                 "pyjs__class_instance('Foo','t'),$i,$m.object);"
         '})();',
@@ -1451,7 +1451,7 @@ class Foo(object):
                     "'a',"
                     'function a(){'
                     'return null;}'
-                    ",1,[null,null,'self'])};"
+                    ",1,[null,null])};"
                 '$i.b=$i.a;'
                 'return pyjs__class_function_single_base('
                     "pyjs__class_instance('foo','t'),$i,$m.object);})();",

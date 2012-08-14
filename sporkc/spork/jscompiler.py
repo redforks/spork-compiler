@@ -1373,14 +1373,9 @@ class AstVisitor(object):
         
     def build_js_args(self, args):
         s = j.Str
-        def _arg_def(arg, val):
-            return s(j._safe_js_id(arg.id))
-
         vararg, kwarg = args.vararg, args.kwarg
         arr = [s(n) if n else j.Null() for n in (vararg, kwarg)]
-        arr.extend(_arg_def(arg, v) for arg, v in izip(args.args,
-            chain(repeat(None, len(args.args) - len(args.defaults)),
-                args.defaults)))
+        arr.extend(s(j._safe_js_id(arg.id)) for arg in args.args)
         return j.Array(arr)
 
     def _auto_return(self, stats):

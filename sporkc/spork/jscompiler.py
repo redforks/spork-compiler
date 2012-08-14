@@ -1374,10 +1374,7 @@ class AstVisitor(object):
     def build_js_args(self, args):
         s = j.Str
         def _arg_def(arg, val):
-            arr = [s(j._safe_js_id(arg.id))]
-            if val:
-                arr.append(self.visit(val))
-            return j.Array(arr)
+            return s(j._safe_js_id(arg.id))
 
         vararg, kwarg = args.vararg, args.kwarg
         arr = [s(n) if n else j.Null() for n in (vararg, kwarg)]

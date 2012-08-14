@@ -137,49 +137,44 @@ function pyjs_set_arg_call(obj, func, args) {
         func = obj[func];
     }
 
-    // Now convert args to call_args
-    // args = __kwargs, arg1, arg2, ...
-    // _args = arg1, arg2, arg3, ... [*args, [**kwargs]]
-    var _args = [], __args__ = func.__args__, a, aname, _idx = 1, idx = 1, res;
+    var c_args = [], d_args = func.__args__, a, aname, d_idx = 2, c_idx = 1;
     if (obj === null) {
         if (func.__is_instance__ === false) {
-            // Skip first argument in __args__
-            _idx ++;
+            d_idx ++;
         }
     } else if (func.__bind_type__ > 0) {
-        _idx ++;
+        d_idx ++;
     }
 
-    for (++_idx; _idx < __args__.length; _idx++, idx++) {
-        aname = __args__[_idx][0];
+    for (; d_idx < d_args.length; d_idx++, c_idx++) {
+        aname = d_args[d_idx];
         a = args[0][aname];
-        if (args[idx] === undefined) {
-            _args.push(a);
+        if (args[c_idx] === undefined) {
+            c_args.push(a);
             delete args[0][aname];
         } else {
-            _args.push(args[idx]);
+            c_args.push(args[c_idx]);
         }
     }
 
-    // Append the left-over args
-    for (;idx < args.length;idx++) {
-        _args.push(args[idx]);
+    if (d_args[0] !== null) {
+        for (;c_idx < args.length;c_idx++) {
+            c_args.push(args[c_idx]);
+        }
     }
 
-    if (__args__[1] === null) {
-        // Check for unexpected keyword
+    if (d_args[1] !== null) {
+        a = $b.dict(args[0]);
+        a._pyjs_is_kwarg = true;
+        c_args.push(a);
+    } else {
         for (var kwname in args[0]) {
             if (args[0].hasOwnProperty(kwname)) {
                 pyjs__exception_func_unexpected_keyword(func.__name__, kwname);
             }
         }
-        return func.apply(obj, _args);
     }
-    a = $b.dict(args[0]);
-    a._pyjs_is_kwarg = true;
-    _args.push(a);
-    res = func.apply(obj, _args);
-    return res;
+    return func.apply(obj, c_args);
 }
 
 function pyjs_kwargs_call(obj, func, star_args, dstar_args, args)
@@ -187,7 +182,6 @@ function pyjs_kwargs_call(obj, func, star_args, dstar_args, args)
     "use strict";
     var __i, i;
 
-    // Merge dstar_args into args[0]
     if (dstar_args) {
         __i = $b._iter_init(dstar_args);
         while ((i = __i()) !== undefined) {
@@ -195,7 +189,6 @@ function pyjs_kwargs_call(obj, func, star_args, dstar_args, args)
         }
     }
 
-    // Append star_args to args
     if (star_args) {
         args = args.concat(star_args.l);
     }

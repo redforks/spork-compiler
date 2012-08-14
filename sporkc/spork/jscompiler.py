@@ -427,7 +427,7 @@ class ModuleScope(Scope):
 
     def add(self, symbol):
         if symbol.startswith('$t'):
-            self.locals[symbol] = None
+            self.locals.add(symbol)
 
     def resolve(self, symbol, ctx):
         if symbol in self.locals:

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from __spork__ import JS, import_js, import_css, no_arg_check
+from __spork__ import JS, import_js, import_css, no_arg_check, private
 
 if __debug__:
     import_js('jquery-1.7.1.js')
@@ -1134,6 +1134,7 @@ def _to_real_idx(len, index, type):
     return index
 
 @no_arg_check
+@private
 def _get_items_by_slice(arr, len, index):
     lower, upper, step = index.indices(len)
     if step == 1:
@@ -1151,6 +1152,7 @@ def _get_items_by_slice(arr, len, index):
     return r
 
 @no_arg_check
+@private
 def _fast_get_item(arr, index, cls):
     result = JS('arr[index]')
     if result is NotImplemented:
@@ -1159,6 +1161,7 @@ def _fast_get_item(arr, index, cls):
     return result
 
 @no_arg_check
+@private
 def _iter_JS_array(arr):
     JS("""
     var i = 0;
@@ -2500,6 +2503,7 @@ delete $m.__Number_fromhex;
 ''')
 _loaded_modules = {'__builtin__': JS('$m')}
 
+@private
 def _get_stack_trace():
     def rsplit_two(s):
         idx = s.rfind(':')
@@ -2551,12 +2555,14 @@ def _get_stack_trace():
 ''')
     return result[2:]
 
+@private
 def _get_pyfile(module_obj):
     if module_obj is not None:
         return getattr(module_obj, '__file__', None)
     else:
         return None
 
+@private
 def _get_pyline(m, jsline):
     if not m or not hasattr(m, '__srcmap__'):
         return -1
@@ -2572,6 +2578,7 @@ def _get_pyline(m, jsline):
     ''')
     return -1
 
+@private
 def _get_pysrc(m, pyline):
     if pyline == -1:
         return 'n/a'
@@ -2602,6 +2609,7 @@ def _extract_stack():
     result.reverse()
     return result
 
+@private
 def _issubtype(object_, classinfo):
     JS("""
     if (object_.__is_instance__ === null || classinfo.__is_instance__ === null) {

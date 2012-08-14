@@ -2584,10 +2584,6 @@ def _get_pysrc(m, pyline):
         return 'n/a'
     return m.__src__[pyline - 1].lstrip()
 
-def _basename(url):
-    idx = url.rfind('/')
-    return url[idx + 1:]
-
 def _extract_stack():
     def get_module_name(jsfile):
         result = jsfile[:-3]

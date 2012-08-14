@@ -142,7 +142,6 @@ class JSCompilerTest(JSCompilerTestBase):
         t('$m.$const$=(function(){'
         'var $i={'
         "$do$:pyjs__bind_method('$do$',function $do$(){"
-        'var self=this;'
         'return null;'
         '},'
         "1,[null,null,['self']])};"
@@ -674,7 +673,7 @@ class JSCompilerTest(JSCompilerTestBase):
     def do_method_argcheck(self, jscode, pycode):
         back = self.compile('class C(object):\n def f(self' + 
                 pycode + '): pass', argcheck=True)
-        idx1 = search(r"var self=this;", back).end()
+        idx1 = search("function f[^{]*{", back).end()
         idx2 = search('return null;', back).start()
         self.assertEqual(jscode, back[idx1:idx2])
 
@@ -879,7 +878,7 @@ class C(object):
                 'C=(function(){'
                     'var $i={'
                     "g:pyjs__bind_method('g',"
-                    "function g(){var self=this;return val;}"
+                    "function g(){return val;}"
                     ",1,[null,null,['self']])};"
                     'return pyjs__class_function_single_base('
                         "pyjs__class_instance('C','t'),$i,"
@@ -1064,16 +1063,14 @@ def f():
     def test_method_in_class(self):
         self.do_cls_member(
             "f:pyjs__bind_method('f',function f(){"
-                'var first=this;'
-                'return null;'
+                'return this;'
             '}'
             ",1,[null,null,['first']])", '',
-            '\n def f(first):  pass')
+            '\n def f(first):  return first')
 
         self.do_cls_member(
             "f:pyjs__bind_method('f',function f(a){"
             'var b;'
-            'var self=this;'
             'b=1;'
 			'return a.__add__(b);'
             '}'
@@ -1082,18 +1079,16 @@ def f():
 
         self.do_cls_member(
             "f:pyjs__bind_method('f',function f(a){"
-            'var self=this;'
             "a!==undefined||(a=1);"
-			'return a.__add__(self);'
+			'return a.__add__(this);'
             '}'
             ",1,[null,null,['self'],['a',1]])", '',
             '\n def f(self, a=1):  return a+self')
 
         self.do_cls_member(
             "f:pyjs__bind_method('f',function f(b){"
-            'var self=this;'
             'var a=$b.tuple(Array.prototype.slice.call(arguments,1));'
-			'return a.__add__(self);'
+			'return a.__add__(this);'
             '}'
             ",1,['a',null,['self'],['b']])", '',
             '\n def f(self, b, *a):  return a+self')
@@ -1101,18 +1096,28 @@ def f():
         self.do_cls_member(
                 "f:pyjs__bind_method('f',"
                 'function f(){'
-                'var self=this;'
                 'var b=arguments.length>0?arguments[arguments.length-1]:'
                     '$b.__empty_kwarg();'
                         "return null;}"
                 ",1,[null,'b',['self']])", '',
                 '\n def f(self,**b): pass')
 
+        for code in [
+            '[x for x in range(10)]',
+            '(x for x in range(10))',
+            'tuple(x for x in range(10))',
+        ]:
+            jscode = self.compile('''
+class Foo(object):
+    def foo(self):
+        %s
+            ''' % code)
+            assert 'var self=this;' in jscode, code
+
     def test_class_super(self):
         self.do_cls_member(
             "f:pyjs__bind_method('f',function f(){"
-                'var self=this;'
-                "$m._get_super_method($m.Foo,self,'f')();"
+                "$m._get_super_method($m.Foo,this,'f')();"
                 'return null;'
             '}'
             ",1,[null,null,['self']])", '',
@@ -1121,8 +1126,7 @@ def f():
         self.do_cls_member(
             "f:pyjs__bind_method('f',function f(){"
                 'var a;'
-                'var self=this;'
-                "a=$m._get_super_method($m.Foo,self,'f')(1,2);"
+                "a=$m._get_super_method($m.Foo,this,'f')(1,2);"
                 'return null;'
             '}'
             ",1,[null,null,['self']])", '',
@@ -1130,8 +1134,7 @@ def f():
 
         self.do_cls_member(
             "f:pyjs__bind_method('f',function f(){"
-                'var self=this;'
-                "pyjs_set_arg_call($m.$super$($m.Foo,self),'f',[{a:1}]);"
+                "pyjs_set_arg_call($m.$super$($m.Foo,this),'f',[{a:1}]);"
                 'return null;'
             '}'
             ",1,[null,null,['self']])", '',
@@ -1141,7 +1144,6 @@ def f():
         self.do_cls_member(
                 "f:pyjs__bind_method('f',"
                 'function f(){'
-                'var self=this;'
                 "return 1;}"
                 ",1,[null,null,['self']])", '',
                 '\n def f(self): return 1')
@@ -1150,7 +1152,6 @@ def f():
         self.do_cls_member(
                 "f:pyjs__bind_method('f',"
                 'function f(){'
-                'var self=this;'
                 "throw 1;}"
                 ",1,[null,null,['self']])", '',
                 '\n def f(self): raise 1')
@@ -1199,7 +1200,6 @@ def f():
     def test_property(self):
         self.do_cls_member(
             "f:$m.property(pyjs__bind_method('f',function f(){"
-                'var self=this;'
                 'return null;'
             '}'
             ",1,[null,null,['self']]))",
@@ -1207,7 +1207,6 @@ def f():
             '$i.f='
             "$b._getattr($i.f,'setter')"
             "(pyjs__bind_method('f',function f(){"
-                'var self=this;'
                 'return null;'
             '}'
             ",1,[null,null,['self']]));",
@@ -1218,11 +1217,10 @@ def f():
         self.do_cls_member(
             'g:1,'
             "f:pyjs__bind_method('f',function f(){"
-                'var first=this;'
-                'return $m.g;'
+                'return this;'
             '}'
             ",1,[null,null,['first']])", '',
-            '\n g = 1\n def f(first):  return g')
+            '\n g = 1\n def f(first):  return first')
 
     def test_import(self):
         t = self.t
@@ -1437,7 +1435,6 @@ def f():
             'var $i={'
             "__init__:pyjs__bind_method('__init__',"
             "function __init__(){"
-                'var self=this;'
                 'return null;'
             '}'
         ",1,[null,null,['self']])};"
@@ -1453,7 +1450,6 @@ def f():
                     'a:pyjs__bind_method('
                     "'a',"
                     'function a(){'
-                    'var self=this;'
                     'return null;}'
                     ",1,[null,null,['self']])};"
                 '$i.b=$i.a;'

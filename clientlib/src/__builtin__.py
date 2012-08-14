@@ -516,26 +516,26 @@ class object():
         pass
 
     def __delattr__(self, attrname):
-        if JS("self.hasOwnProperty(attrname)"):
-            JS('delete self[attrname];')
+        if JS("this.hasOwnProperty(attrname)"):
+            JS('delete this[attrname];')
         else:
             raise AttributeError(attrname)
 
     def __setattr__(self, name, value):
         JS(r'''
-        if (self.hasOwnProperty($name$)) {
-            self[$name$] = value;
+        if (this.hasOwnProperty($name$)) {
+            this[$name$] = value;
         }
 
-        var p = self[$name$];
+        var p = this[$name$];
         if (p && p.__set__) {
-            p.__set__(self, value);
+            p.__set__(this, value);
         } else {
-            if (value && !value.__is_method__ && !self.__is_instance__ && $.isFunction(value)) {
+            if (value && !value.__is_method__ && !this.__is_instance__ && $.isFunction(value)) {
                 value = value.bind(null, this);
-                self[$name$] = pyjs__bind_method($name$, value, value.__bind_type__, value.__args__);
+                this[$name$] = pyjs__bind_method($name$, value, value.__bind_type__, value.__args__);
             } else {
-                self[$name$] = value;
+                this[$name$] = value;
             }
         }
     ''')
@@ -1055,12 +1055,12 @@ class property(object):
     def __get__(self, obj, objtype=None):
         if self.fget is None:
             raise AttributeError, "unreadable attribute"
-        return JS('self.fget.apply(obj)')
+        return JS('this.fget.apply(obj)')
 
     def __set__(self, obj, value):
         if self.fset is None:
             raise AttributeError, "can't set attribute"
-        return JS('self.fset.apply(obj, [value])')
+        return JS('this.fset.apply(obj, [value])')
 
     def __delete__(self, obj):
         if self.fdel is None:
@@ -1289,7 +1289,7 @@ class list(object):
     @no_arg_check
     def __fastgetitem__(self, index):
         ''' `index' always be positive int, used by jscompiler only '''
-        return _fast_get_item(JS('self.l'), index, 'list')
+        return _fast_get_item(JS('this.l'), index, 'list')
 
     def __setitem__(self, index, value):
         if isinstance(index, slice):
@@ -1447,7 +1447,7 @@ class tuple(object):
     @no_arg_check
     def __fastgetitem__(self, index):
         ''' `index' always be positive int, used by jscompiler only '''
-        return _fast_get_item(JS('self.l'), index, 'tuple')
+        return _fast_get_item(JS('this.l'), index, 'tuple')
 
     def __len__(self):
         return JS('this.l.length')

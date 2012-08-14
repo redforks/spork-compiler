@@ -453,6 +453,8 @@ class ParentedScope(Scope):
         self.locals = OrderedSet()
 
 class FunctionScope(ParentedScope):
+    _self_var_name = None
+
     def __init__(self, parent, locals, args):
         super(FunctionScope, self).__init__(parent)
         self.locals.update(locals)
@@ -463,6 +465,8 @@ class FunctionScope(ParentedScope):
             self.locals.add(symbol)
 
     def resolve(self, symbol, ctx):
+        if self._self_var_name == symbol:
+            return j.This()
         if symbol in self.locals or symbol in self.args:
             return id(symbol)
         else:
@@ -470,6 +474,9 @@ class FunctionScope(ParentedScope):
             if isinstance(self.parent, ClassDefScope):
                 parent = parent.parent
             return parent.resolve(symbol, ctx)
+
+    def set_self_is_this(self, self_var_name):
+        self._self_var_name = self_var_name
 
 class ListCompScope(ParentedScope):
     def resolve(self, symbol, ctx):
@@ -1380,11 +1387,22 @@ class AstVisitor(object):
                 'prototype'))]
 
         def do_normal(args):
+            def has_nested_func_or_class(node):
+                is_func_or_class = lambda x: isinstance(x, (ast.FunctionDef,
+                    ast.ClassDef, ast.Lambda, ast.ListComp, ast.GeneratorExp))
+                nodes = ast.walk(node)
+                next(nodes)
+                return any(is_func_or_class(x) for x in nodes)
+
             if not args:
                 raise SporkError("lack `self' argument.")
-            thisvar = j.This()
-            truepart = j.Declare_var_stat(args[0].id, thisvar)
-            return [truepart]
+            if has_nested_func_or_class(node):
+                thisvar = j.This()
+                truepart = j.Declare_var_stat(args[0].id, thisvar)
+                return [truepart]
+            else:
+                self.scope.set_self_is_this(args[0].id)
+                return ()
 
         def do_static(args):
             return []

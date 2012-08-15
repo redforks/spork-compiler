@@ -414,11 +414,72 @@ def _is_builtin_module(module_name):
     return module_name == BUILTIN_MODULE
 
 class ModuleScope(Scope):
-    def __init__(self, visitor, module_name):
+
+    class PreScan(ast.NodeVisitor):
+        def __init__(self):
+            super(ModuleScope.PreScan, self).__init__()
+            self.privates = OrderedSet()
+            self.__private_imported_as = None
+            self.__spork_imported_as = None
+
+        def visit(self, node):
+            method = 'visit_' + node.__class__.__name__
+            visitor = getattr(self, method, None)
+            if visitor is not None:
+                visitor(node)
+
+        def visit_Module(self, node):
+            v = self.visit
+            eat(v(x) for x in node.body)
+
+        def visit_FunctionDef(self, node):
+            decorator_list = node.decorator_list
+            for decorator in decorator_list[:]:
+                if self.__is_private_decor(decorator):
+                    self.privates.add(node.name)
+                    break
+
+        def visit_Import(self, node):
+            names = node.names
+            for name, asname in self.__iter_aliases(names):
+                if name == '__spork__':
+                    self.__spork_imported_as = asname
+                    break
+
+        def visit_ImportFrom(self, node):
+            level, module, names = node.level, node.module, node.names
+            if module == '__spork__':
+                for name, asname in self.__iter_aliases(names):
+                    if name == 'private':
+                        self.__private_imported_as = asname
+                        break
+                return
+
+        def __iter_aliases(self, names):
+            for name in names:
+                name, asname = name.name, name.asname
+                yield name, asname or name.partition('.')[0]
+
+        def __is_spork_module(self, node):
+            return isinstance(node, ast.Name) and \
+                    node.id == self.__spork_imported_as
+
+        def __is_private_decor(self, node):
+            if isinstance(node, ast.Name):
+                return node.id == self.__private_imported_as
+            if isinstance(node, ast.Attribute):
+                return self.__is_spork_module(node.value) and\
+                        node.attr == 'private'
+            return False
+
+    def __init__(self, visitor, module_name, node):
         super(ModuleScope, self).__init__(visitor)
         self.symbols = set()
         self.module_name = module_name
-        self.locals = OrderedSet()
+
+        pre_scan = ModuleScope.PreScan()
+        pre_scan.visit(node)
+        self.locals = pre_scan.privates
 
     __predefined = {'None': j.Null(), 'True': j.True_(), 'False': j.False_(),
                 'NotImplemented': _undefined}
@@ -541,7 +602,6 @@ class AstVisitor(object):
         self.check_global = options.get('check_global', debug)
         self.srcmap = options.get('srcmap', debug)
         self.argcheck = options.get('argcheck', debug)
-        self.scope = ModuleScope(self, module_name)
         self.__imported_spork_funcs = {}
         self.__spork_imported_as = None
         self._symbol = Symbol(module_name, debug)
@@ -697,6 +757,7 @@ class AstVisitor(object):
                 return result
             return ()
 
+        self.scope = ModuleScope(self, self.module_name, node)
         self._remove_docstring(node)
         
         m = self.module_name
@@ -1381,17 +1442,17 @@ class AstVisitor(object):
         f = j.FunctionDef(arglist, stats,
                 j._safe_js_id(name) if self.debug else None)
 
-        f = j.Call(id('pyjs__bind_func'), (
+        result = j.Call(id('pyjs__bind_func'), (
                 j.Str(j._safe_js_id(name)),
                 f, self.build_js_args(node.args)
             ))
         with self._push_scope(self.scope.parent):
             for decor in decorator_list:
-                f = j.Call(self.visit(decor), [f])
+                result = j.Call(self.visit(decor), [result])
         funcvar = self.scope.parent.resolve(name, getattr(node, 'ctx',
             None))
         j_as = j.AssignStat
-        return _clo(j_as(funcvar, f), node)
+        return _clo(j_as(funcvar, result), node)
         
     def visit_MethodDef(self, node):
         def do_class(args):
@@ -1456,11 +1517,12 @@ class AstVisitor(object):
         if self.scope.locals:
             stats.insert(0, j.DeclareMultiVar(self.scope.locals))
         self._auto_return(stats)
+        f = j.FunctionDef(arglist, stats,
+                j._safe_js_id(name) if self.debug else None)
 
         result = j.Call(id('pyjs__bind_method'), (
             j.Str(j._safe_js_id(name)), 
-            j.FunctionDef(arglist, stats,
-                j._safe_js_id(name) if self.debug else None), 
+            f,
             j.Num(method_type), self.build_js_args(args, method_type)
             ))
 

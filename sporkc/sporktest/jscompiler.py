@@ -1571,6 +1571,13 @@ line 3;
             import_private + '@private\ndef foo():  pass',
             vars=['foo'])
 
+        self.t("$m.foo=pyjs__bind_func('foo',"
+            "function foo(){return bar();},[0]);"
+            "bar=pyjs__bind_func('bar',"
+            "function bar(){return null;},[0]);",
+            import_private + 'def foo(): return bar()\n@private\ndef bar():  pass',
+            vars=['bar'])
+
         c, assertError = self.compile, self.assertError
         with assertError(SporkError,
             '@private can not on nested function. line: 3'):

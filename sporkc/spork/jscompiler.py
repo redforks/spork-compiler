@@ -1326,51 +1326,6 @@ class AstVisitor(object):
             stats.insert(0, do_argcheck(stats, node))
         return stats, [self.visit(n) for n in args]
 
-    @function_scope
-    def visit_FunctionDef(self, node):
-        self._remove_docstring(node)
-
-        if isinstance(self.scope.parent, ClassDefScope):
-            return self.visit_MethodDef(node)
-
-        argcheck = self.argcheck
-        decorator_list = node.decorator_list
-        for decorator in decorator_list[:]:
-            if self.__is_spork_func(decorator, 'no_arg_check'):
-                argcheck = False
-                decorator_list.remove(decorator)
-            elif self.__is_spork_func(decorator, 'private'):
-                module_scope = self.scope.parent
-                if isinstance(module_scope, ModuleScope):
-                    module_scope.add_private(node.name)
-                else:
-                    raise SporkError(
-                        '@private can not on nested function. line: '
-                        + str(node.lineno))
-                decorator_list.remove(decorator)
-            else:
-                raise NotImplementedError, 'function decorator is not supported'
-
-        stats = []
-        argstats, arglist = self._do_visit_arguments(node, argcheck)
-
-        stats.extend(argstats)
-        stats.extend(self._visit_stats(node.body))
-        if self.scope.locals:
-            stats.insert(0, j.DeclareMultiVar(self.scope.locals))
-        self._auto_return(stats)
-        f = j.FunctionDef(arglist, stats,
-                j._safe_js_id(node.name) if self.debug else None)
-
-        f = j.Call(id('pyjs__bind_func'), (
-                j.Str(j._safe_js_id(node.name)),
-                f, self.build_js_args(node.args)
-            ))
-        funcvar = self.scope.parent.resolve(node.name, getattr(node, 'ctx',
-            None))
-        j_as = j.AssignStat
-        return _clo(j_as(funcvar, f), node)
-        
     def build_js_args(self, args, skip_self=False):
         s = j.Str
         vararg, kwarg = args.vararg, args.kwarg
@@ -1391,6 +1346,52 @@ class AstVisitor(object):
         if not stats or not isinstance(stats[-1], (j.Return, j.Throw)):
             stats.append(j.Return(j.Null()))
 
+    @function_scope
+    def visit_FunctionDef(self, node):
+        self._remove_docstring(node)
+
+        if isinstance(self.scope.parent, ClassDefScope):
+            return self.visit_MethodDef(node)
+
+        argcheck = self.argcheck
+        decorator_list = node.decorator_list
+        name = node.name
+        for decorator in decorator_list[:]:
+            if self.__is_spork_func(decorator, 'no_arg_check'):
+                argcheck = False
+                decorator_list.remove(decorator)
+            elif self.__is_spork_func(decorator, 'private'):
+                module_scope = self.scope.parent
+                if isinstance(module_scope, ModuleScope):
+                    module_scope.add_private(name)
+                else:
+                    raise SporkError(
+                        '@private can not on nested function. line: '
+                        + str(node.lineno))
+                decorator_list.remove(decorator)
+            else:
+                raise NotImplementedError, 'function decorator is not supported'
+
+        stats = []
+        argstats, arglist = self._do_visit_arguments(node, argcheck)
+
+        stats.extend(argstats)
+        stats.extend(self._visit_stats(node.body))
+        if self.scope.locals:
+            stats.insert(0, j.DeclareMultiVar(self.scope.locals))
+        self._auto_return(stats)
+        f = j.FunctionDef(arglist, stats,
+                j._safe_js_id(name) if self.debug else None)
+
+        f = j.Call(id('pyjs__bind_func'), (
+                j.Str(j._safe_js_id(name)),
+                f, self.build_js_args(node.args)
+            ))
+        funcvar = self.scope.parent.resolve(name, getattr(node, 'ctx',
+            None))
+        j_as = j.AssignStat
+        return _clo(j_as(funcvar, f), node)
+        
     def visit_MethodDef(self, node):
         def do_class(args):
             if not args:
@@ -1426,12 +1427,12 @@ class AstVisitor(object):
 
         NORMAL, STATIC, CLASS = 1, 0, 2
         method_type = NORMAL
-        name, body, args = node.name, node.body, node.args
+        name, args = node.name, node.args
         decorator_list = node.decorator_list
-        no_arg_check = False
+        argcheck = self.argcheck
         for decorator in decorator_list[:]:
             if self.__is_spork_func(decorator, 'no_arg_check'):
-                no_arg_check = True
+                argcheck = False
                 decorator_list.remove(decorator)
             elif self.__is_spork_func(decorator, 'private'):
                 raise SporkError('@private can not on method. line: ' +
@@ -1448,9 +1449,9 @@ class AstVisitor(object):
         stats = []
         stats.extend(funcs[method_type](args.args))
         argstats, arglist = self._do_visit_arguments(node,
-                not no_arg_check and self.argcheck, method_type != STATIC)
+                argcheck, method_type != STATIC)
         stats.extend(argstats)
-        stats.extend(self._visit_stats(body))
+        stats.extend(self._visit_stats(node.body))
         if self.scope.locals:
             stats.insert(0, j.DeclareMultiVar(self.scope.locals))
         self._auto_return(stats)

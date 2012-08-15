@@ -1369,8 +1369,6 @@ class AstVisitor(object):
                         '@private can not on nested function. line: '
                         + str(node.lineno))
                 decorator_list.remove(decorator)
-            else:
-                raise NotImplementedError, 'function decorator is not supported'
 
         stats = []
         argstats, arglist = self._do_visit_arguments(node, argcheck)
@@ -1387,6 +1385,9 @@ class AstVisitor(object):
                 j.Str(j._safe_js_id(name)),
                 f, self.build_js_args(node.args)
             ))
+        with self._push_scope(self.scope.parent):
+            for decor in decorator_list:
+                f = j.Call(self.visit(decor), [f])
         funcvar = self.scope.parent.resolve(name, getattr(node, 'ctx',
             None))
         j_as = j.AssignStat

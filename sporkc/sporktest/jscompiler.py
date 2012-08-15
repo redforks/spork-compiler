@@ -607,6 +607,11 @@ class JSCompilerTest(JSCompilerTestBase):
         self.do_argcheck(self.__js_exact_arg('f', 0), '', '')
         self.do_argcheck(self.__js_exact_arg('f', 1), '', 'a')
 
+    def test_func_decorator(self):
+        t = self.t
+        t("$m.foo=$m.deco(pyjs__bind_func('foo',function foo(){return null;},[0]));",
+                '@deco\ndef foo(): pass')
+
     def test_lambda_normal_argcheck(self):
         back = self.compile('lambda : None', argcheck = True)
         expected = self.__js_exact_arg('<lambda>', 0)

@@ -395,9 +395,11 @@ class ModuleName(ast.Name):
     pass
 
 class Scope(object):
-    def __init__(self, visitor):
-        self.visitor = visitor
+    def __init__(self, parent, visitor=None):
+        self.visitor = visitor or parent.visitor
         self._var_idx = 0
+        self.parent = parent
+        self.locals = OrderedSet()
 
     def unique_name(self):
         self._var_idx += 1
@@ -415,7 +417,7 @@ def _is_builtin_module(module_name):
 
 class ModuleScope(Scope):
 
-    class PreScan(ast.NodeVisitor):
+    class PreScan(object):
         def __init__(self):
             super(ModuleScope.PreScan, self).__init__()
             self.privates = OrderedSet()
@@ -473,13 +475,13 @@ class ModuleScope(Scope):
             return False
 
     def __init__(self, visitor, module_name, node):
-        super(ModuleScope, self).__init__(visitor)
+        super(ModuleScope, self).__init__(None, visitor)
         self.symbols = set()
         self.module_name = module_name
 
         pre_scan = ModuleScope.PreScan()
         pre_scan.visit(node)
-        self.locals = pre_scan.privates
+        self.locals.update(pre_scan.privates)
 
     __predefined = {'None': j.Null(), 'True': j.True_(), 'False': j.False_(),
                 'NotImplemented': _undefined}
@@ -510,13 +512,7 @@ class ModuleScope(Scope):
             else:
                 return ATTR(MODULE_VAR_id, symbol)
 
-class ParentedScope(Scope):
-    def __init__(self, parent):
-        super(ParentedScope, self).__init__(parent.visitor)
-        self.parent = parent
-        self.locals = OrderedSet()
-
-class FunctionScope(ParentedScope):
+class FunctionScope(Scope):
     _self_var_name = None
 
     def __init__(self, parent, locals, args):
@@ -542,7 +538,7 @@ class FunctionScope(ParentedScope):
     def set_self_is_this(self, self_var_name):
         self._self_var_name = self_var_name
 
-class ListCompScope(ParentedScope):
+class ListCompScope(Scope):
     def resolve(self, symbol, ctx):
         if symbol in self.locals:
             return id(symbol)
@@ -552,7 +548,7 @@ class ListCompScope(ParentedScope):
     def add(self, symbol):
         self.locals.add(symbol)
 
-class ExceptionHandlerScope(ParentedScope):
+class ExceptionHandlerScope(Scope):
     def __init__(self, parent, except_var):
         super(ExceptionHandlerScope, self).__init__(parent)
         self._var_idx = parent._var_idx
@@ -567,7 +563,7 @@ class ExceptionHandlerScope(ParentedScope):
     def add(self, symbol):
         self.parent.add(symbol)
 
-class ClassDefScope(ParentedScope):
+class ClassDefScope(Scope):
     def resolve(self, symbol, ctx):
         if symbol in self.locals:
             return ATTR(CLS_DEF_VAR_id, symbol)

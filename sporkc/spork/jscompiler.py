@@ -410,7 +410,8 @@ class Scope(object):
         self.add(result)
         return id(result)
 
-    add = nonef
+    def add(self, symbol):
+        self.locals.add(symbol)
 
 def _is_builtin_module(module_name):
     return module_name == BUILTIN_MODULE
@@ -490,10 +491,9 @@ class ModuleScope(Scope):
 
     def add(self, symbol):
         if symbol.startswith('$t'):
-            self.locals.add(symbol)
+            super(ModuleScope, self).add(symbol)
 
-    def add_private(self, symbol):
-        self.locals.add(symbol)
+    add_private = Scope.add
 
     def resolve(self, symbol, ctx):
         if symbol in self.locals:
@@ -522,7 +522,7 @@ class FunctionScope(Scope):
 
     def add(self, symbol):
         if symbol not in self.args:
-            self.locals.add(symbol)
+            super(FunctionScope, self).add(symbol)
 
     def resolve(self, symbol, ctx):
         if self._self_var_name == symbol:
@@ -545,9 +545,6 @@ class ListCompScope(Scope):
         else:
             return self.parent.resolve(symbol, ctx)
 
-    def add(self, symbol):
-        self.locals.add(symbol)
-
 class ExceptionHandlerScope(Scope):
     def __init__(self, parent, except_var):
         super(ExceptionHandlerScope, self).__init__(parent)
@@ -569,9 +566,6 @@ class ClassDefScope(Scope):
             return ATTR(CLS_DEF_VAR_id, symbol)
         else:
             return self.parent.resolve(symbol, ctx)
-
-    def add(self, symbol):
-        self.locals.add(symbol)
 
 def _check_arg_count(func, count, args):
     if len(args) != count:

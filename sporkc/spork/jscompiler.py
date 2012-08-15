@@ -440,6 +440,7 @@ class ModuleScope(Scope):
             for decorator in decorator_list[:]:
                 if self.__is_private_decor(decorator):
                     self.privates.add(node.name)
+                    decorator_list.remove(decorator)
                     break
 
         def visit_Import(self, node):
@@ -492,8 +493,6 @@ class ModuleScope(Scope):
     def add(self, symbol):
         if symbol.startswith('$t'):
             super(ModuleScope, self).add(symbol)
-
-    add_private = Scope.add
 
     def resolve(self, symbol, ctx):
         if symbol in self.locals:
@@ -1412,14 +1411,9 @@ class AstVisitor(object):
                 argcheck = False
                 decorator_list.remove(decorator)
             elif self.__is_spork_func(decorator, 'private'):
-                module_scope = self.scope.parent
-                if isinstance(module_scope, ModuleScope):
-                    module_scope.add_private(name)
-                else:
-                    raise SporkError(
-                        '@private can not on nested function. line: '
-                        + str(node.lineno))
-                decorator_list.remove(decorator)
+                raise SporkError(
+                    '@private can not on nested function. line: '
+                    + str(node.lineno))
 
         stats = []
         argstats, arglist = self._do_visit_arguments(node, argcheck)

@@ -281,6 +281,7 @@ def _assert(test, msg):
             try:
                 from logging import debug
                 debug('*Assetion* ' + msg)
+                JS('console.trace();')
             except:
                 pass
             raise AssertionError(msg or '')

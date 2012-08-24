@@ -2,7 +2,7 @@
 from __spork__ import JS
 __all__ = 'log', 'debug', 'info', 'warning', 'error'
 
-if JS('!console'):
+if JS('!window.console'):
     def log(msg):
         pass
 

@@ -2125,18 +2125,12 @@ $m.String_find = function(sub, start, end) {
 $m.String_join = function(data) {
     if (Array.isArray(data)) {
         return data.join(this);
+    } else if (data.l) {
+        return data.l.join(this);
     } else if ($m.isIteratable(data)) {
-        var str = $m.str;
-        var iter = data.__iter__();
-        var arr = [];
-        try {
-            while (true) {
-                arr.push(str(iter.next()));
-            }
-        } catch (e) {
-            if (e.__name__ !== 'StopIteration') {
-                throw e;
-            }
+        var iter = $m._iter_init(data), val, arr=[];
+        while ((val = iter()) !== undefined) {
+            arr.push(val);
         }
         return arr.join(this);
     } else {
@@ -2436,6 +2430,7 @@ delete $m.__String_splitlines;
 delete $m.__String_translate;
 delete $m.__String_zfill;
 delete $m.__String_getitem;
+delete $m.String_join;
 
 $m.pow=Math.pow;
 ''')

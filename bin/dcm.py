@@ -41,6 +41,8 @@ def parse_args():
     add_argument('projects', nargs='*')
     add_argument('--lib', help='clean lib directory ~/lib/sf/[debug|release]',
             action='store_true')
+    add_argument('-A', '--all', action='store_true',
+            help='clean all projects, not including lib directory')
 
     return parser.parse_args()
 
@@ -192,7 +194,8 @@ def clean():
     if args.lib:
         clean_dir(config.lib_dir)
 
-    for p in args.projects:
+    projects = config.projects if args.all else args.projects
+    for p in projects:
         path = os.path.join(config.projects[p], 'build')
         clean_dir(path)
 

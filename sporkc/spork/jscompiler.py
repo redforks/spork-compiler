@@ -281,7 +281,9 @@ def _dump_members(node):
         n[0].startswith('_') and n[0] not in ('lineno', 'col_offset')]
 
 ATTR = j.Attribute
-SF_ATTR = partial(ATTR, BUILTIN_VAR_id)
+_sf_attr_in_other_module = partial(ATTR, BUILTIN_VAR_id)
+_sf_attr_in_builtin_module = partial(ATTR, MODULE_VAR_id)
+SF_ATTR = _sf_attr_in_other_module
 
 def _o_bin_op(op, left, right):
     if isinstance(left, j.Num) and isinstance(right, j.Num):
@@ -749,6 +751,7 @@ class AstVisitor(object):
         self.scope = ModuleScope(self, self.module_name, node)
         self._remove_docstring(node)
         
+        global SF_ATTR
         m = self.module_name
         stats = []
         if _is_builtin_module(m):
@@ -758,6 +761,7 @@ class AstVisitor(object):
             stats.append(j.AssignStat(
                 ATTR(MODULE_VAR_id, '__file__'),
                 j.Str(get_module_filename(m, '.py'))))
+            SF_ATTR = _sf_attr_in_builtin_module
         else:
             is_load = j.Call(SF_ATTR('_module_loaded'), (j.Str(m),))
             stats.append(j.If(is_load, (j.Return(None),), None))
@@ -777,7 +781,9 @@ class AstVisitor(object):
 
         module_func = j.FunctionDef((), stats)
         module_stat = j.Expr_stat(j.Call(module_func, ()))
-        return j.File((module_stat,)), self._symbol
+        result = j.File((module_stat,)), self._symbol
+        SF_ATTR = _sf_attr_in_other_module
+        return result
 
     def visit_Expr(self, node):
         result = self.visit(node.value)

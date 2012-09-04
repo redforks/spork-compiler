@@ -28,6 +28,7 @@ def parse_args():
     add_argument('projects', nargs='*')
     add_argument('-B', '--always-build', action='store_true',
             help='Unconditionally execute all task')
+    add_argument('-A', '--all', action='store_true', help='build all projects')
 
     action = subparsers.add_parser('add', help='Add a project to dcm',
             parents=[global_options])
@@ -160,7 +161,7 @@ def build():
         spork_path = os.path.join(get_exe_path(), '../sporkc')
         return execute(*cmd_args, cwd=path, env={'PYTHONPATH': spork_path})
 
-    for p in args.projects:
+    for p in get_projects():
         check_action_result(build_project(p))
 
 def rm_file(path):
@@ -180,6 +181,9 @@ def join_debug(path):
 
     return os.path.join(path, p)
 
+def get_projects():
+    return config.projects if args.all else args.projects
+
 def clean():
     def clean_dir(d):
         d = join_debug(d)
@@ -194,8 +198,7 @@ def clean():
     if args.lib:
         clean_dir(config.lib_dir)
 
-    projects = config.projects if args.all else args.projects
-    for p in projects:
+    for p in get_projects():
         path = os.path.join(config.projects[p], 'build')
         clean_dir(path)
 

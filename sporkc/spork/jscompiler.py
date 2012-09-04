@@ -992,9 +992,9 @@ class AstVisitor(object):
             args.append(j.Array(arr))
             if node.starargs is None and node.kwargs is None:
                 del args[2:4]
-                v = id('pyjs_set_arg_call')
+                v = SF_ATTR('pyjs_set_arg_call')
             else:
-                v = id('pyjs_kwargs_call')
+                v = SF_ATTR('pyjs_kwargs_call')
             return j.Call(v, args)
 
         def optimized_super(expr):
@@ -1426,7 +1426,7 @@ class AstVisitor(object):
         f = j.FunctionDef(arglist, stats,
                 j._safe_js_id(name) if self.debug else None)
 
-        result = j.Call(id('pyjs__bind_func'), (
+        result = j.Call(SF_ATTR('pyjs__bind_func'), (
                 j.Str(j._safe_js_id(name)),
                 f, self.build_js_args(node.args)
             ))
@@ -1504,7 +1504,7 @@ class AstVisitor(object):
         f = j.FunctionDef(arglist, stats,
                 j._safe_js_id(name) if self.debug else None)
 
-        result = j.Call(id('pyjs__bind_method'), (
+        result = j.Call(SF_ATTR('pyjs__bind_method'), (
             j.Str(j._safe_js_id(name)), 
             f,
             j.Num(method_type), self.build_js_args(args, method_type)
@@ -1700,10 +1700,10 @@ class AstVisitor(object):
             bases = j.Array([self.visit(n) for n in node.bases])
             create_func = 'pyjs__class_function'
 
-        cls_instance = j.Call(id('pyjs__class_instance'),
+        cls_instance = j.Call(SF_ATTR('pyjs__class_instance'),
             (j.Str(j._safe_js_id(name)), j.Str(self.module_name)))
         args = cls_instance, CLS_DEF_VAR_id, bases
-        create_cls = j.Call(id(create_func), args)
+        create_cls = j.Call(SF_ATTR(create_func), args)
         stats.append(j.Return(create_cls))
 
         left = self.scope.resolve(name, None)

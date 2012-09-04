@@ -2077,7 +2077,7 @@ class _my_build_py_base(_build_py):
 
     def build_module(self, module, module_file, package):
         targetfile = self.get_targetfile(package, module)
-        if newer(module_file, targetfile):
+        if self.force or newer(module_file, targetfile):
             self.build_file(package, module, module_file)
 
     def build_file(self, package, module, module_file):

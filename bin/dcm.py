@@ -26,6 +26,8 @@ def parse_args():
             parents=[global_options])
     add_argument = action.add_argument
     add_argument('projects', nargs='*')
+    add_argument('-B', '--always-build', action='store_true',
+            help='Unconditionally execute all task')
 
     action = subparsers.add_parser('add', help='Add a project to dcm',
             parents=[global_options])
@@ -94,19 +96,64 @@ def build():
         build_dir = join_debug('build')
         lib_dir = join_debug(config.lib_dir)
         path = config.projects[p]
+        cmd_args = [os.path.join(path, 'setup.py')]
+        append = cmd_args.append
 
-        cmd_args = [
-            os.path.join(path, 'setup.py'), 'install', '--install-lib',
-            lib_dir, 'build_py', '--build-lib', build_dir,
-            'install_data', '--install-dir', lib_dir,
-            'gen_home_pages', '--lib-dir', lib_dir, '--build-lib', build_dir,
-            'install_lib', '--build-dir', build_dir,
-        ]
-        if not args.debug:
-            cmd_args.insert(2, '-O2')
-            cmd_args.insert(6, '-O2')
-        if args.verbose:
-            cmd_args.insert(1, '-v')
+        def append_if(cond, val):
+            if cond:
+                append(val)
+
+        def append_option(option, val):
+            append(option)
+            append(val)
+
+        def append_install_lib():
+            append_option('--install-lib', lib_dir)
+
+        def append_install_dir():
+            append_option('--install-dir', lib_dir)
+
+        def append_build_lib():
+            append_option('--build-lib', build_dir)
+
+        def append_build_dir():
+            append_option('--build-dir', build_dir)
+
+        def append_lib_dir():
+            append_option('--lib-dir', lib_dir)
+
+        def append_force():
+            append_if(args.always_build, '-f')
+
+        append_if(args.verbose, '-v')
+
+        # install command
+        append('install')
+        append_force()
+        append_if(not args.debug, '-O2')
+        append_install_lib()
+
+        # build_py command
+        append('build_py')
+        append_build_lib()
+        append_force()
+        append_if(not args.debug, '-O2')
+
+        # install_data command
+        append('install_data')
+        append_force()
+        append_install_dir()
+
+        # gen_home_pages command
+        append('gen_home_pages')
+        append_force()
+        append_lib_dir()
+        append_build_lib()
+
+        # install_lib command
+        append('install_lib')
+        append_force()
+        append_build_dir()
 
         spork_path = os.path.join(get_exe_path(), '../sporkc')
         return execute(*cmd_args, cwd=path, env={'PYTHONPATH': spork_path})
